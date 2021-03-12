@@ -1,0 +1,105 @@
+//---
+// JustUI.jscene: Root object that provides keyboard focus and event handling
+//---
+
+#ifndef _J_JSCENE
+#define _J_JSCENE
+
+#include <justui/defs.h>
+#include <justui/jwidget.h>
+#include <justui/jevent.h>
+
+#define JSCENE_QUEUE_SIZE 32
+
+/* jscene: A widget scene with keyboard focus and event handling
+
+   This widget is designed to be the root of a widget tree. It keeps track of
+   widgets with keyboard focus, feeds them keyboard events, and catches other
+   useful events to store them in an event queue. */
+typedef struct {
+	jwidget widget;
+
+	/* Location on screen */
+	int16_t x, y;
+	/* Widget with focus */
+	jwidget *focus;
+
+   /* Circular event queue */
+   jevent queue[JSCENE_QUEUE_SIZE];
+   uint8_t queue_first;
+   uint8_t queue_next;
+
+   /* Number of events lots */
+   uint16_t lost_events;
+
+} jscene;
+
+/* Events */
+extern uint16_t JSCENE_NONE;
+extern uint16_t JSCENE_PAINT;
+extern uint16_t JSCENE_KEY;
+
+/* jscene_create(): Create a new scene at that specified screen position */
+jscene *jscene_create(int x, int y, int w, int h, void *parent);
+
+/* jscene_create_fullscreen(): Create a fullscreen scene
+   The position is (0,0) and the size is (DWIDTH,DHEIGHT). */
+jscene *jscene_create_fullscreen(void *parent);
+
+/* jscene_layout(): Layout a scene
+   This is automatically called by jscene_render(), but may be useful if you
+   need to know the size of your widgets before rendering. The layout is
+   recomputed only if something in the scene has changed. */
+#define jscene_layout jwidget_layout
+
+/* jscene_render(): Layout and render a scene
+   Layout is lazy and performed only if needed. The scene is rendered at its
+   (x,y) point. */
+void jscene_render(jscene *scene);
+
+//---
+// Events sent from the scene to the user
+//---
+
+/* jscene_read_event(): Get the next upwards event from the queue
+   If there is no event, returns an event of type JSCENE_NONE. */
+jevent jscene_read_event(jscene *scene);
+
+/* jscene_queue_event(): Queue an upwards event to be later read by the user
+   This function records an event in the scene's queue, which will later be
+   returned by jscene_pollevent(). This is mostly used by widget code to signal
+   stuff that warrants attention. */
+void jscene_queue_event(jscene *scene, jevent event);
+
+//---
+// Keyboard focus and keyboard events
+//---
+
+/* jscene_focused_widget(): Query the widget that currently has focus */
+void *jscene_focused_widget(jscene *scene);
+
+/* jscene_set_focused_widget(): Move the focus to a widget
+   The selected widget, obviously, must be a descendant of the scene. */
+void jscene_set_focused_widget(jscene *scene, void *widget);
+
+/* jscene_process_key(): Send a downwards key event to the focused widget
+   Returns true if the event was accepted, false if it was ignored. */
+bool jscene_process_key(jscene *scene, key_event_t event);
+
+/* jscene_process_event(): Send a downards GUI event to the focused widget */
+// bool jscene_process_event(jscene *scene, jevent event);
+
+
+/* jscene_run(): Run a scene's main loop
+
+   This function implements a main control loop that sleeps when there is
+   nothing to do, forwards all key events to the scene, and returns only to
+   notify GUI events or hand over key events that have been ignored by the
+   scene.
+
+   If a scene event occurs, returns it. If a key event occurs, an event of type
+   JSCENE_KEY is return and its .key attribute contains the details of the
+   forwarded keyboard event. */
+jevent jscene_run(jscene *scene);
+
+#endif /* _J_JSCENE */

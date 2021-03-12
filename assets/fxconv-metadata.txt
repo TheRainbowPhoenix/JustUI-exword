@@ -1,0 +1,8 @@
+input-modes-fx.png:
+  name: j_img_input_modes
+  type: bopti-image
+
+input-modes-cg.png:
+  name: j_img_input_modes
+  type: bopti-image
+  profile: p4

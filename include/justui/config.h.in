@@ -1,0 +1,10 @@
+//---
+// Just UI: Compile-time configuration
+//---
+
+#ifndef _JUSTUI_CONFIG
+#define _JUSTUI_CONFIG
+
+#define J_VERSION "@JustUI_VERSION@"
+
+#endif /* _JUSTUI_CONFIG */

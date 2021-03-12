@@ -1,0 +1,203 @@
+#include <justui/jwidget.h>
+#include <justui/jwidget-api.h>
+#include <justui/jscene.h>
+
+#include <gint/display.h>
+#include <gint/keyboard.h>
+#include <gint/drivers/keydev.h>
+#include <gint/clock.h>
+#include <gint/std/stdlib.h>
+#include <gint/gint.h>
+#include <gint/drivers/t6k11.h>
+
+/* Type identifier for jscene */
+static int jscene_type_id = -1;
+/* Events */
+uint16_t JSCENE_NONE;
+uint16_t JSCENE_PAINT;
+uint16_t JSCENE_KEY;
+
+/* Keyboard transformation for inputs in a jscene */
+static int jscene_repeater(int key, GUNUSED int duration, int count)
+{
+	if(key != KEY_LEFT && key != KEY_RIGHT && key != KEY_UP && key != KEY_DOWN)
+		return -1;
+
+	return (count ? 40 : 400) * 1000;
+}
+static keydev_transform_t jscene_tr = {
+	.enabled =
+		KEYDEV_TR_DELAYED_SHIFT |
+		KEYDEV_TR_INSTANT_SHIFT |
+		KEYDEV_TR_DELAYED_ALPHA |
+		KEYDEV_TR_INSTANT_ALPHA |
+		KEYDEV_TR_REPEATS,
+	.repeater = jscene_repeater,
+};
+
+jscene *jscene_create(int x, int y, int w, int h, void *parent)
+{
+	if(jscene_type_id < 0) return NULL;
+
+	jscene *s = malloc(sizeof *s);
+	if(!s) return NULL;
+
+	jwidget_init(&s->widget, jscene_type_id, parent);
+	jwidget_set_fixed_size(s, w, h);
+
+	s->x = x;
+	s->y = y;
+
+	s->focus = NULL;
+	s->queue_first = 0;
+	s->queue_next = 0;
+	s->lost_events = 0;
+
+	/* Prepare first layout/paint operation */
+	s->widget.dirty = 1;
+
+	return s;
+}
+
+jscene *jscene_create_fullscreen(void *parent)
+{
+	return jscene_create(0, 0, DWIDTH, DHEIGHT, parent);
+}
+
+void jscene_render(jscene *scene)
+{
+	jwidget_layout(scene);
+	jwidget_render(scene, scene->x, scene->y);
+}
+
+//---
+// Event management
+//---
+
+jevent jscene_read_event(jscene *s)
+{
+	if(s->queue_first == s->queue_next)
+		return (jevent){ .source = NULL, .type = JSCENE_NONE };
+
+	jevent e = s->queue[s->queue_first];
+	s->queue_first = (s->queue_first + 1) % JSCENE_QUEUE_SIZE;
+	return e;
+}
+
+void jscene_queue_event(jscene *s, jevent e)
+{
+	/* Prevent filling and overflowing the queue */
+	int next = (s->queue_next + 1) % JSCENE_QUEUE_SIZE;
+	if(next == s->queue_first)
+	{
+		s->lost_events++;
+		return;
+	}
+
+	s->queue[s->queue_next] = e;
+	s->queue_next = next;
+}
+
+//---
+// Keyboard focus and keyboard events
+//---
+
+void *jscene_focused_widget(jscene *s)
+{
+	return s->focus;
+}
+
+void jscene_set_focused_widget(jscene *s, void *w0)
+{
+	J_CAST(w)
+
+	/* Check that (s) is an ancestor of (w) */
+	if(w) for(jwidget *anc = w; anc != (jwidget *)s; anc = anc->parent) {
+		if(anc == NULL) return;
+	}
+
+	/* Focus out old focused widget */
+	if(s->focus) jwidget_event(s->focus,(jevent){ .type = JWIDGET_FOCUS_OUT });
+
+	s->focus = w;
+
+	/* Focus in newly-selected widget */
+	if(w) jwidget_event(w, (jevent){ .type = JWIDGET_FOCUS_IN });
+}
+
+/* jscene_process_event(): Send an event to the focused widget */
+bool jscene_process_key_event(jscene *scene, key_event_t event)
+{
+	jwidget *candidate = scene->focus;
+	jevent e = { .type = JWIDGET_KEY, .key = event };
+
+	while(candidate) {
+		if(jwidget_event(candidate, e)) return true;
+		candidate = candidate->parent;
+	}
+
+	return false;
+}
+
+/* jscene_run(): Run a scene's main loop */
+jevent jscene_run(jscene *s)
+{
+	keydev_t *d = keydev_std();
+	keydev_transform_t tr0 = keydev_transform(d);
+	keydev_set_transform(d, jscene_tr);
+
+	jevent e;
+	while(1) {
+		/* Create repaint events (also handle relayout if needed) */
+		if(jwidget_layout_dirty(s) || jwidget_needs_update(s)) {
+			jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
+		}
+
+		/* Queued GUI events */
+		e = jscene_read_event(s);
+		if(e.type != JSCENE_NONE) break;
+
+		/* Queued keyboard events */
+		key_event_t k = keydev_read(d);
+
+		if(k.type == KEYEV_DOWN && k.key == KEY_MENU && !k.shift && !k.alpha) {
+			gint_osmenu();
+			continue;
+		}
+		#ifdef FX9860G
+		if(k.type == KEYEV_DOWN && k.key == KEY_OPTN && k.shift && !k.alpha) {
+			t6k11_backlight(-1);
+			continue;
+		}
+		#endif
+		if(k.type != KEYEV_NONE && !jscene_process_key_event(s, k)) {
+			e.type = JSCENE_KEY;
+			e.key = k;
+			break;
+		}
+
+		sleep();
+	}
+
+	keydev_set_transform(d, tr0);
+	return e;
+}
+
+/* jscene type definition */
+static jwidget_poly type_jscene = {
+	.name    = "jscene",
+	.csize   = NULL,
+	.layout  = NULL,
+	.render  = NULL,
+	.event   = NULL,
+	.destroy = NULL,
+};
+
+__attribute__((constructor(1001)))
+static void j_register_jscene(void)
+{
+	jscene_type_id = j_register_widget(&type_jscene, "jwidget");
+	JSCENE_NONE = j_register_event();
+	JSCENE_PAINT = j_register_event();
+	JSCENE_KEY = j_register_event();
+}
