@@ -17,7 +17,7 @@
 
    * MENU KEYS are used for functions that open menus or navigate between tabs
      on a same application. The name comes from their primary usage in the
-     system apps. Navigation functions should be easilty reversible and fairly
+     system apps. Navigation functions should be easily reversible and fairly
      failproof. Menu keys are black rectangular keys with a chipped corner.
 
    * ENTRY KEYS are used for catalog entries such as the leaves of PRGM's many
@@ -29,8 +29,8 @@
 
    * SPECIAL KEYS are used for special functions, such as scrolling to the next
      set of functions keys when there are several pages, important functions
-     that should catch attention, or particulary unsafe actions. They are round
-     white keys.
+     that should catch attention, or particularly unsafe actions. They are
+     round white keys.
 
    On fx-CG 50, the keys are drawn dynamically using gint's default font, and
    specified using 6 strings that give the type and name of the keys:
@@ -40,10 +40,10 @@
    * "@NAME" for an action key;
    " "#NAME" for a special key.
 
-   The names are separated by semicolons, eg "/F1;;/F3;.F4;@F5;#F6". Several
+   The names are separated by semicolons, eg. "/F1;;/F3;.F4;@F5;#F6". Several
    sets of function keys can be defined if separated by a '|' character. For
    instance, "/F1;#F2|/F1" represents a function bar where the F2
-   function can be hidden by swithing from level 0 to level 1.
+   function can be hidden by switching from level 0 to level 1.
 
    On fx-9860G, there is not enough space to generate keys on-the-fly, so the
    full specification is just an image. The convention for the image is to be

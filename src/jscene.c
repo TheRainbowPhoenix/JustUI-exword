@@ -64,6 +64,17 @@ jscene *jscene_create_fullscreen(void *parent)
 	return jscene_create(0, 0, DWIDTH, DHEIGHT, parent);
 }
 
+jscene *jscene_owning(void *w0)
+{
+	J_CAST(w)
+
+	while(w) {
+		if(w->type == jscene_type_id) return (void *)w;
+		w = w->parent;
+	}
+	return NULL;
+}
+
 void jscene_render(jscene *scene)
 {
 	jwidget_layout(scene);

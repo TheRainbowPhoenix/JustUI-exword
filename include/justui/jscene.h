@@ -46,6 +46,11 @@ jscene *jscene_create(int x, int y, int w, int h, void *parent);
    The position is (0,0) and the size is (DWIDTH,DHEIGHT). */
 jscene *jscene_create_fullscreen(void *parent);
 
+/* jscene_owning(): Find the scene that manages a widget (if any)
+   This functions walks up the widget tree and locates the scene owning the
+   specified widget, if there is one; otherwise returns NULL. */
+jscene *jscene_owning(void *widget);
+
 /* jscene_layout(): Layout a scene
    This is automatically called by jscene_render(), but may be useful if you
    need to know the size of your widgets before rendering. The layout is
