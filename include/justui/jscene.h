@@ -87,12 +87,13 @@ void *jscene_focused_widget(jscene *scene);
    The selected widget, obviously, must be a descendant of the scene. */
 void jscene_set_focused_widget(jscene *scene, void *widget);
 
-/* jscene_process_key(): Send a downwards key event to the focused widget
+/* jscene_process_key_event(): Send a key event to the focused widget
    Returns true if the event was accepted, false if it was ignored. */
-bool jscene_process_key(jscene *scene, key_event_t event);
+bool jscene_process_key_event(jscene *scene, key_event_t event);
 
-/* jscene_process_event(): Send a downards GUI event to the focused widget */
-// bool jscene_process_event(jscene *scene, jevent event);
+/* jscene_process_event(): Bubble an event up from its source
+   Returns true if the event was accepted along the way, false if ignored. */
+bool jscene_process_event(jscene *scene, jevent event);
 
 
 /* jscene_run(): Run a scene's main loop

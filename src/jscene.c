@@ -136,7 +136,6 @@ void jscene_set_focused_widget(jscene *s, void *w0)
 	if(w) jwidget_event(w, (jevent){ .type = JWIDGET_FOCUS_IN });
 }
 
-/* jscene_process_event(): Send an event to the focused widget */
 bool jscene_process_key_event(jscene *scene, key_event_t event)
 {
 	jwidget *candidate = scene->focus;
@@ -144,6 +143,19 @@ bool jscene_process_key_event(jscene *scene, key_event_t event)
 
 	while(candidate) {
 		if(jwidget_event(candidate, e)) return true;
+		candidate = candidate->parent;
+	}
+
+	return false;
+}
+
+bool jscene_process_event(GUNUSED jscene *scene, jevent event)
+{
+	if(!event.source) return false;
+	jwidget *candidate = ((jwidget *)event.source)->parent;
+
+	while(candidate) {
+		if(jwidget_event(candidate, event)) return true;
 		candidate = candidate->parent;
 	}
 
@@ -166,7 +178,7 @@ jevent jscene_run(jscene *s)
 
 		/* Queued GUI events */
 		e = jscene_read_event(s);
-		if(e.type != JSCENE_NONE) break;
+		if(e.type != JSCENE_NONE && !jscene_process_event(s, e)) break;
 
 		/* Queued keyboard events */
 		key_event_t k = keydev_read(d);
