@@ -227,6 +227,7 @@ void jwidget_remove_child(void *w0, void *child0)
 			index = read;
 		}
 	}
+	w->child_count = write;
 
 	/* Remove the parent from the child */
 	child->parent = NULL;
