@@ -24,21 +24,22 @@ bool vec_add(vec_t *v, size_t n)
 		/* Allocate either size/2 new elements or 4 elements */
 		size_t ext = max(v->size / 2, 4);
 		/* Make sure that no more than 255 free elements will remain */
-		if(v->size + v->free + ext > n + 255)
-			ext = (n + 255) - (v->size + v->free);
+		if(v->free + ext > n + 255)
+			ext = (n + 255) - v->free;
 
 		size_t newsize = v->size + v->free + ext;
 		void *newdata = realloc(v->data, newsize * v->elsize);
 		if(!newdata) return false;
 
 		v->data = newdata;
-		v->free = newsize - n;
+		v->free = newsize - v->size - n;
+		v->size += n;
 	}
 	else {
 		v->free -= n;
+		v->size += n;
 	}
 
-	v->size += n;
 	return true;
 }
 

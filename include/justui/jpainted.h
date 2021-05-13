@@ -31,7 +31,7 @@
    an integer or a pointer (essentially).
 
      void draw_value(int x, int y, uint32_t *value) {
-     	dprint(x, y, "%08X", *value);
+       dprint(x, y, "%08X", *value);
      }
      uint32_t my_value;
      jpainted *widget = jpainted_create(draw_value, &my_value, 30, 8, parent);

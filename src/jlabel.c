@@ -28,6 +28,7 @@ jlabel *jlabel_create(char const *text, void *parent)
 	l->color = C_BLACK;
 	l->font = NULL;
 
+	l->wrap_mode = J_WRAP_NONE;
 	l->text = text;
 	l->owns_text = false;
 
