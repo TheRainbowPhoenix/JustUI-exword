@@ -280,7 +280,7 @@ void jlayout_box_apply(void *w0)
 		/* Determine natural length along the container, and stretch child
 		   along the perpendicular direction if possible */
 
-		if(!child->visible) {
+		if(!child->visible || child->floating) {
 			elements[i].stretch = 0;
 			elements[i].max = 0;
 			continue;
@@ -320,7 +320,7 @@ void jlayout_box_apply(void *w0)
 	for(size_t i = 0; i < n; i++) {
 		exp_t *e = &elements[i];
 		jwidget *child = w->children[e->id];
-		if(!child->visible) continue;
+		if(!child->visible || child->floating) continue;
 
 		if(horiz)
 			child->w += e->allocated;
@@ -333,7 +333,7 @@ void jlayout_box_apply(void *w0)
 
 	for(size_t i = 0; i < n; i++) {
 		jwidget *child = w->children[i];
-		if(!child->visible) continue;
+		if(!child->visible || child->floating) continue;
 
 		if(horiz) {
 			child->x = position;

@@ -48,14 +48,21 @@ static void jwidget_poly_render(void *w0, int x, int y)
 	/* If there is a stack layout, render active child */
 	if((l = jlayout_get_stack(w)) && l->active >= 0) {
 		jwidget *child = w->children[l->active];
-		if(child->visible) jwidget_render(child, x+child->x, y+child->y);
+		if(child->visible && !child->floating)
+			jwidget_render(child, x+child->x, y+child->y);
 	}
-	/* Otherwise, simply render all children */
-	else {
-		for(int k = 0; k < w->child_count; k++) {
-			jwidget *child = w->children[k];
-			if(child->visible) jwidget_render(child, x+child->x, y+child->y);
-		}
+	/* Otherwise, simply render all non-floating children */
+	else for(int k = 0; k < w->child_count; k++) {
+		jwidget *child = w->children[k];
+		if(child->visible)// && !child->floating)
+			jwidget_render(child, x+child->x, y+child->y);
+	}
+
+	/* Render floating widgets over the layout */
+	for(int k = 0; k < w->child_count; k++) {
+		jwidget *child = w->children[k];
+		if(child->visible && child->floating)
+			jwidget_render(child, x+child->x, y+child->y);
 	}
 }
 
@@ -447,7 +454,7 @@ void jwidget_set_visible(void *w0, bool visible)
 	J_CAST(w)
 	if(w->visible == visible) return;
 
-	w->visible = visible;
+	w->visible = (visible != 0);
 	if(w->parent) w->parent->dirty = 1;
 }
 
@@ -476,7 +483,7 @@ static void jwidget_layout_apply(void *w0)
 	if(!w->visible) return;
 	int t = w->layout;
 
-	if(t == J_LAYOUT_NONE) {
+	if(t == J_LAYOUT_NONE || w->floating) {
 		jwidget_poly const *poly = widget_types[w->type];
 		if(poly->layout) poly->layout(w);
 	}
@@ -547,6 +554,21 @@ int jwidget_full_height(void *w0)
 {
 	J_CAST(w)
 	return w->h;
+}
+
+bool jwidget_floating(void *w0)
+{
+	J_CAST(w)
+	return w->floating;
+}
+
+void jwidget_set_floating(void *w0, bool floating)
+{
+	J_CAST(w)
+	if(w->floating == floating) return;
+
+	w->floating = (floating != 0);
+	if(w->parent) w->parent->dirty = 1;
 }
 
 //---

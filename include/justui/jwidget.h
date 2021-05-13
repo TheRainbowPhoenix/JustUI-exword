@@ -87,8 +87,10 @@ typedef struct jwidget {
 	uint update         :1;
 	/* Whether widget is visible inside its parent */
 	uint visible        :1;
+	/* Widget is floating outside the layout (and positioned manually) */
+	uint floating       :1;
 
-	uint :24;
+	uint :23;
 
 } jwidget;
 
@@ -328,6 +330,14 @@ int jwidget_content_height(void *w);
    make sense to call when the layout is up-to-date. */
 int jwidget_full_width(void *w);
 int jwidget_full_height(void *w);
+
+/* jwidget_floating(): Whether widget is floating
+   A floating widget is not laid out by its parent's layout, and can be
+   positioned manually. Floating children are rendered after other children. */
+bool jwidget_floating(void *w);
+
+/* jwidget_set_floating(): Make a widget floating or non-floating */
+void jwidget_set_floating(void *w, bool floating);
 
 //---
 // Rendering

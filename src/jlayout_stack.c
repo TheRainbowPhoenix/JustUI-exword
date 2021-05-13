@@ -45,6 +45,7 @@ void jlayout_stack_apply(void *w0)
 
 	for(int k = 0; k < w->child_count; k++) {
 		jwidget *child = w->children[k];
+		if(!child->visible || child->floating) continue;
 
 		/* Maximum size to enforce: this is the acceptable size closest to our
 		   content size (that space we have to distribute) */
