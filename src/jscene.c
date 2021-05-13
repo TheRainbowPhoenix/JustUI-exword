@@ -185,6 +185,7 @@ jevent jscene_run(jscene *s)
 
 		if(k.type == KEYEV_DOWN && k.key == KEY_MENU && !k.shift && !k.alpha) {
 			gint_osmenu();
+			jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
 			continue;
 		}
 		#ifdef FX9860G
