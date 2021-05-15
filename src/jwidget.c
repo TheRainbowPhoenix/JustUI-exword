@@ -108,6 +108,7 @@ void jwidget_init(jwidget *w, int type, void *parent)
 	w->child_alloc = 0;
 	w->dirty = 1;
 	w->visible = 1;
+	w->floating = 0;
 
 	w->type = type;
 	w->geometry = NULL;
