@@ -1,5 +1,6 @@
 #include <justui/jfkeys.h>
 #include <justui/jwidget-api.h>
+#include <gint/defs/attributes.h>
 #include <gint/std/stdlib.h>
 #include <gint/std/string.h>
 
@@ -14,6 +15,7 @@ jfkeys *jfkeys_create(bopti_image_t const *img, void *parent)
 	jfkeys *f = malloc(sizeof *f);
 	jwidget_init(&f->widget, jfkeys_type_id, parent);
 	jfkeys_set(f, img);
+
 	return f;
 }
 
@@ -32,6 +34,7 @@ jfkeys *jfkeys_create(char const *labels, void *parent)
 	jfkeys *f = malloc(sizeof *f);
 	jwidget_init(&f->widget, jfkeys_type_id, parent);
 	jfkeys_set(f, labels);
+	for(int i = 0; i < 6; i++) f->overrides[i] = NULL;
 	return f;
 }
 
@@ -112,7 +115,11 @@ static void jfkeys_poly_render(void *f0, int base_x, int y)
 
 	for(int position = 0; position < 6; position++) {
 		size_t length = 0;
-		char const *text = get_label(level, position, &length);
+		char const *text = NULL;
+		#ifdef FXCG50
+		text = f->overrides[position];
+		#endif
+		if(!text) text = get_label(level, position, &length);
 		if(!text || (*text != '.' && *text != '/' && *text != '@'
 			&& *text != '#')) continue;
 
@@ -159,6 +166,25 @@ void jfkeys_set_level(jfkeys *f, int level)
 	if(f->level == level) return;
 	f->level = level;
 	f->widget.update = 1;
+}
+
+char const *jfkeys_override(GUNUSED jfkeys *keys, GUNUSED int key)
+{
+	#ifdef FXCG50
+	if(key < 1 || key > 6) return NULL;
+	return keys->overrides[key - 1];
+	#endif
+
+	return NULL;
+}
+
+void jfkeys_set_override(GUNUSED jfkeys *keys, GUNUSED int key,
+	GUNUSED char const *override)
+{
+	#ifdef FXCG50
+	if(key < 1 || key > 6) return;
+	keys->overrides[key - 1] = override;
+	#endif
 }
 
 /* jfkeys type definition */

@@ -60,6 +60,7 @@ typedef struct {
 
 	#ifdef FXCG50
 	char const *labels;
+  char const *overrides[6];
 	#endif
 
 } jfkeys;
@@ -100,5 +101,17 @@ int jfkeys_level(jfkeys *keys);
 
 /* jfkeys_set_level(): Set the function key level */
 void jfkeys_set_level(jfkeys *keys, int level);
+
+/* The following functions are available only on fx-CG 50 and are no-ops on
+   fx-9860 (you can't generate a good image for a tiny key). */
+
+/* fkeys_override(): Get the override for a key */
+char const *jfkeys_override(jfkeys *keys, int key);
+
+/* fkeys_set_override(): Override the value of a single key on all levels
+   This functions sets the override on the specified key, which replaces the
+   label for that key on all levels. This is useful to conditionally show
+   functions. */
+void jfkeys_set_override(jfkeys *keys, int key, char const *override);
 
 #endif /* _J_JFKEYS */
