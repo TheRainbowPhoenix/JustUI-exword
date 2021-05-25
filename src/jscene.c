@@ -128,12 +128,14 @@ void jscene_set_focused_widget(jscene *s, void *w0)
 	}
 
 	/* Focus out old focused widget */
-	if(s->focus) jwidget_event(s->focus,(jevent){ .type = JWIDGET_FOCUS_OUT });
+	if(s->focus) jscene_queue_event(s,
+		(jevent){ .type = JWIDGET_FOCUS_OUT, .source = s->focus });
 
 	s->focus = w;
 
 	/* Focus in newly-selected widget */
-	if(w) jwidget_event(w, (jevent){ .type = JWIDGET_FOCUS_IN });
+	if(w) jscene_queue_event(s,
+		(jevent){ .type = JWIDGET_FOCUS_IN, .source = w });
 }
 
 bool jscene_process_key_event(jscene *scene, key_event_t event)
