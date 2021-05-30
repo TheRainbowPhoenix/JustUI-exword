@@ -197,7 +197,7 @@ jevent jscene_run(jscene *s)
 		}
 		#endif
 		if(k.type != KEYEV_NONE && !jscene_process_key_event(s, k)) {
-			e.type = JSCENE_KEY;
+			e.type = JWIDGET_KEY;
 			e.key = k;
 			break;
 		}
@@ -225,5 +225,5 @@ static void j_register_jscene(void)
 	jscene_type_id = j_register_widget(&type_jscene, "jwidget");
 	JSCENE_NONE = j_register_event();
 	JSCENE_PAINT = j_register_event();
-	JSCENE_KEY = j_register_event();
+	JSCENE_KEY = JWIDGET_KEY;
 }

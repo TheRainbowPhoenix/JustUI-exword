@@ -37,7 +37,7 @@ typedef struct {
 /* Events */
 extern uint16_t JSCENE_NONE;
 extern uint16_t JSCENE_PAINT;
-extern uint16_t JSCENE_KEY;
+extern uint16_t JSCENE_KEY; /* Deprecated, merged with JWIDGET_KEY */
 
 /* jscene_create(): Create a new scene at that specified screen position */
 jscene *jscene_create(int x, int y, int w, int h, void *parent);
@@ -104,7 +104,7 @@ bool jscene_process_event(jscene *scene, jevent event);
    scene.
 
    If a scene event occurs, returns it. If a key event occurs, an event of type
-   JSCENE_KEY is return and its .key attribute contains the details of the
+   JWIDGET_KEY is return and its .key attribute contains the details of the
    forwarded keyboard event. */
 jevent jscene_run(jscene *scene);
 

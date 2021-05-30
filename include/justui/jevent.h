@@ -41,7 +41,7 @@ typedef struct {
 
 	/* Event details or data */
 	union {
-		/* Downward JWIDGET_KEY event or upwards JSCENE_KEY */
+		/* JWIDGET_KEY events */
 		key_event_t key;
 	};
 
