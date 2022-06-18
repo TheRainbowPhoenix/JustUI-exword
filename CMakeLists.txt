@@ -13,7 +13,7 @@ set(ASSETS_fx
 set(ASSETS_cg
   assets/input-modes-cg.png
 )
-fxconv_declare_assets(${ASSETS_fx} ${ASSETS_cg})
+fxconv_declare_assets(${ASSETS_fx} ${ASSETS_cg} WITH_METADATA)
 
 set(NAME "justui-${FXSDK_PLATFORM}")
 add_library(${NAME} STATIC

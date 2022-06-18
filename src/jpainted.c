@@ -1,7 +1,7 @@
 #include <justui/jpainted.h>
 #include <gint/std/stdlib.h>
 
-/* Type identified for jpainted */
+/* Type identifier for jpainted */
 static int jpainted_type_id = -1;
 
 jpainted *jpainted_create(void *function, j_arg_t arg, int natural_w,
