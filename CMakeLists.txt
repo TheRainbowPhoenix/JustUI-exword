@@ -5,6 +5,8 @@ project(JustUI VERSION 1.0 LANGUAGES C)
 find_package(Gint 2.1 REQUIRED)
 include(Fxconv)
 
+set(CMAKE_INSTALL_MESSAGE LAZY)
+
 configure_file(include/justui/config.h.in include/justui/config.h)
 
 set(ASSETS_fx
@@ -26,6 +28,7 @@ add_library(${NAME} STATIC
   src/jinput.c
   src/jpainted.c
   src/jfkeys.c
+  src/jfileselect.c
   src/vec.c
   src/keymap.c
   ${ASSETS_${FXSDK_PLATFORM}}

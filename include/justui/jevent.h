@@ -16,7 +16,7 @@
    occurs in the GUI. These are mostly widget signaling state changes,
    validations, and other GUI specifics that might require attention. Events
    can either be reported to the user by the scene (upwards event) or notify
-   widgets of something occuring to them (downwards event).
+   widgets of something occurring to them (downwards event).
 
    JustUI tries hard to not invert flow control and leave the user to decide
    when to produce downwards events. In a normal situation, events from

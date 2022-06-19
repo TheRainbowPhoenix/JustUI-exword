@@ -13,7 +13,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-/* j_dirs_t: Quadruplet with four directions */
+/* jdirs: Quadruplet with four directions */
 typedef struct {
 	uint8_t top;
 	uint8_t right;
@@ -21,7 +21,7 @@ typedef struct {
 	uint8_t left;
 } jdirs;
 
-/* j_align_t: Alignment options with both horizontal and vertical names */
+/* jalign: Alignment options with both horizontal and vertical names */
 typedef enum {
 	/* Horizontal names */
 	J_ALIGN_LEFT   = 0,

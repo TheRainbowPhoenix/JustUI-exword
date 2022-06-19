@@ -63,7 +63,7 @@ typedef void jwidget_poly_render_t(void *w, int x, int y);
    key events. This function is somewhat of a catch-all function for dynamic
    occurrences. The widget should either accept the event, do something with
    it, and return true, or refuse the event, do nothing and return false. This
-   is influences events that propagate, such as key events. */
+   influences events that propagate, such as key events. */
 typedef bool jwidget_poly_event_t(void *w, jevent e);
 
 /* jwidget_poly_destroy_t: Destroy a widget's specific resources
