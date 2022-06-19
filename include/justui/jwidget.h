@@ -204,6 +204,9 @@ void jwidget_insert_child(void *w, void *child, int position);
    (w) must be the parent of (child). The child is left without a parent. */
 void jwidget_remove_child(void *w, void *child);
 
+/* jwidget_child_position(): Find the position of a widget in the child list */
+int jwidget_child_position(void *w, void *child);
+
 //---
 // Sizing and stretching
 //---

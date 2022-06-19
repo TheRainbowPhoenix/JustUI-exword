@@ -138,6 +138,35 @@ void jscene_set_focused_widget(jscene *s, void *w0)
 		(jevent){ .type = JWIDGET_FOCUS_IN, .source = w });
 }
 
+void jscene_show_and_focus(jscene *scene, void *w0)
+{
+	J_CAST(w)
+
+	/* Ensure the widget is visible */
+	jwidget_set_visible(w, true);
+
+	/* Force stacked layouts all the wat up to [scene] to show [w] */
+	jwidget *current = w;
+	jwidget *parent = w->parent;
+
+	while(parent != (jwidget *)scene) {
+		jlayout_stack *stack = jlayout_get_stack(parent);
+		if(stack) {
+			int pos = jwidget_child_position(parent, current);
+			if(stack->active != pos) {
+				stack->active = pos;
+				parent->update = true;
+			}
+		}
+
+		current = parent;
+		parent = current->parent;
+	}
+
+	/* Give the widget focus */
+	jscene_set_focused_widget(scene, w);
+}
+
 bool jscene_process_key_event(jscene *scene, key_event_t event)
 {
 	jwidget *candidate = scene->focus;

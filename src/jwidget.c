@@ -249,6 +249,18 @@ void jwidget_remove_child(void *w0, void *child0)
 	w->dirty = 1;
 }
 
+int jwidget_child_position(void *w0, void *child0)
+{
+	J_CAST(w, child)
+
+	for(int i = 0; i < w->child_count; i++) {
+		if(w->children[i] == child)
+			return i;
+	}
+
+	return -1;
+}
+
 //---
 // Sizing and stretching
 //---
