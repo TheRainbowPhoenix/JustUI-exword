@@ -27,13 +27,14 @@ typedef struct {
 
     /* Folder currently being browsed */
     char *path;
-    /* Corresponding directory stream */
-    DIR *dp;
-    /* Entry previously validated (with EXE) */
+    /* List of entries */
+    void *entries;
+    /* Number of entries in the current folder */
+    int entry_count;
+
+    /* Full path to file last selected with EXE */
     char *selected_file;
 
-    /* Number of entries in the current folder */
-    int folder_entries;
     /* Current cursor position (0 .. folder_entries-1) */
     int16_t cursor;
     /* Current scroll position */
@@ -43,6 +44,8 @@ typedef struct {
 
     /* Additional pixels of spacing per line (base is font->height) */
     int8_t line_spacing;
+    /* Whether to show the file size on the right */
+    bool show_file_size;
     /* Rendering font */
     font_t const *font;
 
@@ -84,5 +87,6 @@ char const *jfileselect_current_folder(jfileselect *fs);
 /* Trivial properties */
 void jfileselect_set_font(jfileselect *fs, font_t const *font);
 void jfileselect_set_line_spacing(jfileselect *fs, int line_spacing);
+void jfileselect_set_show_file_size(jfileselect *fs, bool show_file_size);
 
 #endif /* _J_JFILESELECT */
