@@ -377,7 +377,7 @@ void jwidget_render(void *w, int x, int y);
 //---
 
 /* jwidget_type(): Get a widget's human-readable type name
-   This is the name specified in the jwidgetPoly structure for the type. */
+   This is the name specified in the jwidget_poly structure for the type. */
 char const *jwidget_type(void *w);
 
 #endif /* _J_JWIDGET */
