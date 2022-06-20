@@ -496,7 +496,7 @@ static void jwidget_layout_apply(void *w0)
 	if(!w->visible) return;
 	int t = w->layout;
 
-	if(t == J_LAYOUT_NONE || w->floating) {
+	if(t == J_LAYOUT_NONE) {
 		jwidget_poly const *poly = widget_types[w->type];
 		if(poly->layout) poly->layout(w);
 	}
