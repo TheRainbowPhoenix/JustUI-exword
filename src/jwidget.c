@@ -609,11 +609,15 @@ void jwidget_render(void *w0, int x, int y)
 	if(g->border_style == J_BORDER_NONE || color == C_NONE) {
 	}
 	else if(g->border_style == J_BORDER_SOLID) {
-		drect(x1, y1, x2 + b.right - 1, y1 + b.top - 1, color);
-		drect(x1, y2, x2 + b.right - 1, y2 + b.bottom - 1, color);
+		if(b.top > 0)
+			drect(x1, y1, x2 + b.right - 1, y1 + b.top - 1, color);
+		if(b.bottom > 0)
+			drect(x1, y2, x2 + b.right - 1, y2 + b.bottom - 1, color);
 
-		drect(x1, y1 + b.top, x1 + b.left - 1, y2 - 1, color);
-		drect(x2, y1 + b.top, x2 + b.right - 1, y2 - 1, color);
+		if(b.left > 0)
+			drect(x1, y1 + b.top, x1 + b.left - 1, y2 - 1, color);
+		if(b.right > 0)
+			drect(x2, y1 + b.top, x2 + b.right - 1, y2 - 1, color);
 	}
 	/* TODO: jwidget_render(): More border types */
 
