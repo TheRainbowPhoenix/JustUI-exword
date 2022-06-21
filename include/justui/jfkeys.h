@@ -60,7 +60,7 @@ typedef struct {
 
 	#ifdef FXCG50
 	char const *labels;
-  char const *overrides[6];
+	char const *overrides[6];
 	#endif
 
 } jfkeys;

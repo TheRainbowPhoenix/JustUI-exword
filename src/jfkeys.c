@@ -23,6 +23,7 @@ void jfkeys_set(jfkeys *f, bopti_image_t const *img)
 {
 	f->img = img;
 	f->level = 0;
+	f->widget.update = true;
 }
 #endif /* FX9860G */
 
@@ -42,6 +43,7 @@ void jfkeys_set(jfkeys *f, char const *labels)
 {
 	f->labels = labels;
 	f->level = 0;
+	f->widget.update = true;
 }
 
 /* get_level(): Find the level inside a function definition */
