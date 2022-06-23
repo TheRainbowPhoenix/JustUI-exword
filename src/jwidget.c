@@ -377,6 +377,19 @@ void jwidget_set_border(void *w, jwidget_border_style s, int width, int color)
 	for(int i = 0; i < 4; i++) g->borders[i] = width;
 }
 
+void jwidget_set_borders(void *w, jwidget_border_style s, int color,
+   int top, int right, int bottom, int left)
+{
+	jwidget_geometry *g = jwidget_geometry_rw(w);
+
+	g->border_style = s;
+	g->border_color = color;
+	g->border.top    = top;
+	g->border.right  = right;
+	g->border.bottom = bottom;
+	g->border.left   = left;
+}
+
 void jwidget_set_padding(void *w, int top, int right, int bottom, int left)
 {
 	jwidget_geometry *g = jwidget_geometry_rw(w);

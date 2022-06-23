@@ -272,6 +272,10 @@ jwidget_geometry *jwidget_geometry_rw(void *w);
    border width on a widget's geometry. */
 void jwidget_set_border(void *w, jwidget_border_style s, int width, int color);
 
+/* jwidget_set_borders(): Set all four borders */
+void jwidget_set_borders(void *w, jwidget_border_style s, int color,
+   int top, int right, int bottom, int left);
+
 /* jwidget_set_padding(): Set all padding distances around a widget */
 void jwidget_set_padding(void *w, int top, int right, int bottom, int left);
 
