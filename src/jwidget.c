@@ -656,8 +656,7 @@ bool jwidget_event(void *w0, jevent e)
 {
 	J_CAST(w)
 	jwidget_poly const *poly = widget_types[w->type];
-	if(poly->event) return poly->event(w, e);
-	return false;
+	return poly->event && poly->event(w, e);
 }
 
 void jwidget_emit(void *w0, jevent e)

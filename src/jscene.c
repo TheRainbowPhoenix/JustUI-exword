@@ -99,8 +99,7 @@ void jscene_queue_event(jscene *s, jevent e)
 {
 	/* Prevent filling and overflowing the queue */
 	int next = (s->queue_next + 1) % JSCENE_QUEUE_SIZE;
-	if(next == s->queue_first)
-	{
+	if(next == s->queue_first) {
 		s->lost_events++;
 		return;
 	}

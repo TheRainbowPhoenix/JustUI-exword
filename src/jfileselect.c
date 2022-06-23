@@ -28,7 +28,7 @@ struct fileinfo {
 	char *name;
 	/* File size in bytes if file, number of entries if folder */
 	int size;
-	/* Type from [struct dirent] */
+	/* Type from [struct dirent], -1 for the "Save As" entry */
 	int type;
 };
 
@@ -41,11 +41,21 @@ jfileselect *jfileselect_create(void *parent)
 
 	jwidget_init(&fs->widget, jfileselect_type_id, parent);
 
+	jinput *input = jinput_create("Filename: ", 32, fs);
+	if(!input) {
+		free(fs);
+		return NULL;
+	}
+	jwidget_set_floating(input, true);
+	jwidget_set_visible(input, false);
+
 	fs->path = NULL;
 	fs->entries = NULL;
 	fs->entry_count = 0;
 
 	fs->selected_file = NULL;
+	fs->saveas_input = input;
+	fs->saveas = false;
 
 	fs->cursor = -1;
 	fs->scroll = 0;
@@ -75,6 +85,30 @@ static void set_finfo(jfileselect *fs, struct fileinfo *finfo, int n)
 	}
 	fs->entries = finfo;
 	fs->entry_count = n;
+}
+
+void jfileselect_set_saveas(jfileselect *fs, bool save_as)
+{
+	fs->saveas = save_as;
+}
+
+//---
+// Input utilities
+//---
+
+static void start_input(jfileselect *fs)
+{
+	fs->input_mode = true;
+	jinput_clear(fs->saveas_input);
+	jwidget_event(fs->saveas_input, (jevent){ .type = JWIDGET_FOCUS_IN });
+	fs->widget.update = true;
+}
+
+static void stop_input(jfileselect *fs)
+{
+	fs->input_mode = false;
+	jwidget_event(fs->saveas_input, (jevent){ .type = JWIDGET_FOCUS_OUT });
+	fs->widget.update = true;
 }
 
 //---
@@ -161,12 +195,19 @@ static int count_accepted_entries(DIR *dp)
 static int compare_entries(void const *i1_0, void const *i2_0)
 {
 	struct fileinfo const *i1 = i1_0, *i2 = i2_0;
-	int d1 = (i1->type == DT_DIR);
-	int d2 = (i2->type == DT_DIR);
 
 	/* Group directories first */
+	int d1 = (i1->type == DT_DIR);
+	int d2 = (i2->type == DT_DIR);
 	if(d1 != d2)
 		return d2 - d1;
+
+	/* Then the "Save As" entry */
+	int sa1 = (i1->type == -1);
+	int sa2 = (i2->type == -1);
+	if(sa1 != sa2)
+		return sa2 - sa1;
+
 	/* Then group by name */
 	return strcmp(i1->name, i2->name);
 }
@@ -181,7 +222,7 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 		return false;
 
 	/* Count entries */
-	int n = count_accepted_entries(dp);
+	int n = count_accepted_entries(dp) + fs->saveas;
 
 	/* Allocate memory for the fileinfo structures */
 	struct fileinfo *finfo = malloc(n * sizeof *finfo);
@@ -227,6 +268,13 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 		i++;
 	}
 
+	/* Add the saveas entry */
+	if(fs->saveas) {
+		finfo[n-1].name = strdup("<Create a new file here>");
+		finfo[n-1].type = -1;
+		finfo[n-1].size = -1;
+	}
+
 	qsort(finfo, n, sizeof *finfo, compare_entries);
 
 	closedir(dp);
@@ -258,6 +306,7 @@ bool jfileselect_browse(jfileselect *fs, char const *path)
 
 	fs->cursor = 0;
 	fs->scroll = 0;
+	stop_input(fs);
 	return true;
 }
 
@@ -288,6 +337,7 @@ static void jfileselect_poly_layout(void *fs0)
 {
 	jfileselect *fs = fs0;
 	count_visible_lines(fs);
+	fs->saveas_input->widget.w = jwidget_content_width(fs) - 4;
 }
 
 static void jfileselect_poly_render(void *fs0, int x, int y)
@@ -306,13 +356,21 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 		struct fileinfo *info = &finfo[fs->scroll + i];
 		bool isfolder = (info->type == DT_DIR);
 
-		int line_y = y + line_height * i;
-		if(selected)
-			drect(x, line_y, x + cw - 1, line_y + line_height - 1, C_BLACK);
-
 		/* Round `line_spacing / 2` down so there is more spacing below */
+		int line_y = y + line_height * i;
 		int text_y = line_y + (fs->line_spacing + 0) / 2;
 		int fg = selected ? C_WHITE : C_BLACK;
+
+		if(selected && fs->input_mode) {
+			/* Little bit of a hack */
+			fs->saveas_input->widget.visible = true;
+			jwidget_render(fs->saveas_input, x+2, text_y);
+			fs->saveas_input->widget.visible = false;
+			continue;
+		}
+
+		if(selected)
+			drect(x, line_y, x + cw - 1, line_y + line_height - 1, C_BLACK);
 
 		dprint(x+2, text_y, fg, "%s%s", info->name, isfolder ? "/" : "");
 		if(fs->show_file_size && info->size >= 0) {
@@ -329,6 +387,30 @@ static bool jfileselect_poly_event(void *fs0, jevent e)
 	jfileselect *fs = fs0;
 	if(!fs->path || !fs->entries)
 		return false;
+
+	if(e.type == JINPUT_CANCELED && e.source == fs->saveas_input) {
+		stop_input(fs);
+		return true;
+	}
+	else if(e.type == JINPUT_VALIDATED && e.source == fs->saveas_input) {
+		stop_input(fs);
+		fs->selected_file = path_down(fs->path,jinput_value(fs->saveas_input));
+		if(fs->selected_file) {
+			jwidget_emit(fs,(jevent){ .type = JFILESELECT_VALIDATED });
+			return true;
+		}
+		else return false;
+	}
+	/* Send all events to the input when in input mode (without requiring
+	   access to the jscene to actually move the focus */
+	else if(fs->input_mode) {
+		bool b = jwidget_event(fs->saveas_input, e);
+		if(b)
+			fs->widget.update = true;
+		/* We do capture all key events if not used by the input, so F-keys are
+		   disabled/etc */
+		return b || e.type == JWIDGET_KEY;
+	}
 
 	if(e.type == JWIDGET_KEY) {
 		key_event_t ev = e.key;
@@ -376,6 +458,7 @@ static bool jfileselect_poly_event(void *fs0, jevent e)
 		else if(key == KEY_EXE) {
 			struct fileinfo *finfo = fs->entries;
 			struct fileinfo *i = &finfo[fs->cursor];
+
 			if(i->type == DT_DIR) {
 				char *child = path_down(fs->path, i->name);
 				if(child) {
@@ -384,6 +467,10 @@ static bool jfileselect_poly_event(void *fs0, jevent e)
 					fs->scroll = 0;
 					return true;
 				}
+			}
+			else if(fs->saveas && i->type == -1) {
+				start_input(fs);
+				return true;
 			}
 			else {
 				fs->selected_file = path_down(fs->path, i->name);

@@ -7,6 +7,7 @@
 
 #include <justui/defs.h>
 #include <justui/jwidget.h>
+#include <justui/jinput.h>
 #include <gint/display.h>
 #include <dirent.h>
 
@@ -34,6 +35,12 @@ typedef struct {
 
     /* Full path to file last selected with EXE */
     char *selected_file;
+    /* "Save As" input field */
+    jinput *saveas_input;
+    /* Whether the "Save As" option is shown */
+    bool saveas;
+    /* Whether we are currently using the input field */
+    bool input_mode;
 
     /* Current cursor position (0 .. folder_entries-1) */
     int16_t cursor;
@@ -61,6 +68,13 @@ extern uint16_t JFILESELECT_CANCELED;
    There is no initial folder. The widget will not handle any events nor emit
    any events in this state; a path must first be set before use. */
 jfileselect *jfileselect_create(void *parent);
+
+/* jfileselect_set_saveas(): Select whether a "Save as" option is presented
+
+   If true, the browser will show a "<Create a new file here>" entry in every
+   directory. The result of jfileselect_selected_file(), in this case, might be
+   a file that does not yet exist. */
+void jfileselect_set_saveas(jfileselect *fs, bool save_as);
 
 /* jfileselect_browse(): Browse a folder
 
