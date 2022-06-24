@@ -17,8 +17,6 @@
    only consists of a scrolling list of names showing a section of a folder's
    entries.
 
-   TODO: jfileselect: Select a new file to write to
-
    Events:
    * JFILESELECT_LOADED when a folder is loaded into the view
    * JFILESELECT_VALIDATED when a file has been selected

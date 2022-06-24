@@ -31,6 +31,8 @@ typedef struct {
 
    /* Number of events lots */
    uint16_t lost_events;
+   /* Whether jscene_run() returns to the main menu */
+   bool mainmenu;
 
 } jscene;
 
@@ -103,6 +105,10 @@ bool jscene_process_key_event(jscene *scene, key_event_t event);
    Returns true if the event was accepted along the way, false if ignored. */
 bool jscene_process_event(jscene *scene, jevent event);
 
+/* jscene_set_mainmenu(): Set whether jscene_run() will return to main menu
+   Disabling this is useful if you want to catch the MENU key or clean up
+   resources before invoking the main menu. */
+void jscene_set_mainmenu(jscene *scene, bool mainmenu);
 
 /* jscene_run(): Run a scene's main loop
 

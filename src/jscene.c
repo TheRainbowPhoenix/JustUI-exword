@@ -52,6 +52,7 @@ jscene *jscene_create(int x, int y, int w, int h, void *parent)
 	s->queue_first = 0;
 	s->queue_next = 0;
 	s->lost_events = 0;
+	s->mainmenu = true;
 
 	/* Prepare first layout/paint operation */
 	s->widget.dirty = 1;
@@ -192,7 +193,11 @@ bool jscene_process_event(GUNUSED jscene *scene, jevent event)
 	return false;
 }
 
-/* jscene_run(): Run a scene's main loop */
+void jscene_set_mainmenu(jscene *scene, bool mainmenu)
+{
+	scene->mainmenu = mainmenu;
+}
+
 jevent jscene_run(jscene *s)
 {
 	keydev_t *d = keydev_std();
@@ -214,9 +219,11 @@ jevent jscene_run(jscene *s)
 		key_event_t k = keydev_read(d);
 
 		if(k.type == KEYEV_DOWN && k.key == KEY_MENU && !k.shift && !k.alpha) {
-			gint_osmenu();
-			jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
-			continue;
+			if(s->mainmenu) {
+				gint_osmenu();
+				jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
+				continue;
+			}
 		}
 		#ifdef FX9860G
 		if(k.type == KEYEV_DOWN && k.key == KEY_OPTN && k.shift && !k.alpha) {
