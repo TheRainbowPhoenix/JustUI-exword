@@ -1,8 +1,8 @@
 # Just UI
 
 cmake_minimum_required(VERSION 3.16)
-project(JustUI VERSION 1.0 LANGUAGES C)
-find_package(Gint 2.1 REQUIRED)
+project(JustUI VERSION 1.2.0 LANGUAGES C)
+find_package(Gint 2.8 REQUIRED)
 include(Fxconv)
 
 set(CMAKE_INSTALL_MESSAGE LAZY)
