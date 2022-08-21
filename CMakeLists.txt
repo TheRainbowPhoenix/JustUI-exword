@@ -38,17 +38,16 @@ target_compile_options(${NAME} PUBLIC
   -Wall -Wextra -std=c11 -Os)
 target_include_directories(${NAME} PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  "${CMAKE_CURRENT_BINARY_DIR}/include"
-  "${FXSDK_COMPILER_INSTALL}/include/openlibm")
+  "${CMAKE_CURRENT_BINARY_DIR}/include")
 target_link_libraries(${NAME}
-  Gint::Gint -lopenlibm)
+  Gint::Gint -lm)
 
 install(TARGETS ${NAME}
-  DESTINATION "${FXSDK_COMPILER_INSTALL}")
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  DESTINATION "${FXSDK_COMPILER_INSTALL}"
+  DESTINATION "${FXSDK_LIB}")
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
+  DESTINATION "${FXSDK_INCLUDE}"
   FILES_MATCHING PATTERN "*.h")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/justui/config.h"
-  DESTINATION "${FXSDK_COMPILER_INSTALL}/include/justui")
+  DESTINATION "${FXSDK_INCLUDE}/justui")
 install(FILES cmake/FindJustUI.cmake
   DESTINATION "${FXSDK_CMAKE_MODULE_PATH}")

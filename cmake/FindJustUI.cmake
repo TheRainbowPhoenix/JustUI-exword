@@ -3,7 +3,7 @@ include(FindPackageHandleStandardArgs)
 
 find_package(Gint 2.1 REQUIRED)
 
-find_simple_library("libjustui-${FXSDK_PLATFORM}.a" include/justui/config.h
+find_simple_library("libjustui-${FXSDK_PLATFORM}.a" justui/config.h
   "J_VERSION" PATH_VAR J_PATH VERSION_VAR J_VERSION)
 
 find_package_handle_standard_args(JustUI
