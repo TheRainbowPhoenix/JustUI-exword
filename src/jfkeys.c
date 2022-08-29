@@ -36,6 +36,11 @@ jfkeys *jfkeys_create(char const *labels, void *parent)
 	jwidget_init(&f->widget, jfkeys_type_id, parent);
 	jfkeys_set(f, labels);
 	for(int i = 0; i < 6; i++) f->overrides[i] = NULL;
+	f->bg_color = C_BLACK;
+	f->bg_special_color = C_WHITE;
+	f->text_color = C_WHITE;
+	f->text_special_color = C_BLACK;
+	f->font = dfont_default();
 	return f;
 }
 
@@ -111,7 +116,7 @@ static void jfkeys_poly_render(void *f0, int base_x, int y)
 	#endif
 
 	#ifdef FXCG50
-	font_t const *old_font = dfont(dfont_default());
+	font_t const *old_font = dfont(f->font);
 	char const *level = get_level(f->labels, f->level);
 	if(!level) return;
 
@@ -127,27 +132,31 @@ static void jfkeys_poly_render(void *f0, int base_x, int y)
 
 		int x = base_x + 4 + 65 * position;
 		int w = 63;
-		int color = (text[0] == '#') ? C_BLACK : C_WHITE;
+		int color = (text[0] == '#') ? f->text_special_color : f->text_color;
 
 		if(text[0] == '.') {
-			drect(x, y, x + w - 1, y + 14, C_BLACK);
+			drect(x, y, x + w - 1, y + 14, f->bg_color);
 		}
-		if(text[0] == '/' || text[0] == '@') {
-			dline(x + 1, y, x + w - 2, y, C_BLACK);
-			dline(x + 1, y + 14, x + w - 2, y + 14, C_BLACK);
-			drect(x, y + 1, x + w - 1, y + 13, C_BLACK);
+		if(text[0] == '@') {
+			dline(x + 1, y, x + w - 2, y, f->bg_color);
+			dline(x + 1, y + 14, x + w - 2, y + 14, f->bg_color);
+			drect(x, y + 1, x + w - 1, y + 13, f->bg_color);
 		}
 		if(text[0] == '/') {
-			dline(x + w - 1, y + 10, x + w - 5, y + 14, C_WHITE);
-			dline(x + w - 1, y + 11, x + w - 4, y + 14, C_WHITE);
-			dline(x + w - 1, y + 12, x + w - 3, y + 14, C_WHITE);
-			dline(x + w - 1, y + 13, x + w - 2, y + 14, C_WHITE);
+			dline(x + 1, y, x + w - 2, y, f->bg_color);
+			drect(x, y + 1, x + w - 1, y + 9, f->bg_color);
+			dline(x, y + 10, x + w - 2, y + 10, f->bg_color);
+			dline(x, y + 11, x + w - 3, y + 11, f->bg_color);
+			dline(x, y + 12, x + w - 4, y + 12, f->bg_color);
+			dline(x, y + 13, x + w - 5, y + 13, f->bg_color);
+			dline(x, y + 14, x + w - 6, y + 14, f->bg_color);
 		}
 		if(text[0] == '#') {
-			dline(x + 1, y, x + w - 2, y, C_BLACK);
-			dline(x + 1, y + 14, x + w - 2, y + 14, C_BLACK);
-			drect(x, y + 1, x + 1, y + 13, C_BLACK);
-			drect(x + w - 2, y + 1, x + w - 1, y + 13, C_BLACK);
+			dline(x + 1, y, x + w - 2, y, f->bg_color);
+			dline(x + 1, y + 14, x + w - 2, y + 14, f->bg_color);
+			drect(x, y + 1, x + 1, y + 13, f->bg_color);
+			drect(x + w - 2, y + 1, x + w - 1, y + 13, f->bg_color);
+			drect(x + 2, y + 1, x + w - 3, y + 13, f->bg_special_color);
 		}
 
 		dtext_opt(x + (w >> 1), y + 3, color, C_NONE, DTEXT_CENTER, DTEXT_TOP,
@@ -186,6 +195,24 @@ void jfkeys_set_override(GUNUSED jfkeys *keys, GUNUSED int key,
 	#ifdef FXCG50
 	if(key < 1 || key > 6) return;
 	keys->overrides[key - 1] = override;
+	#endif
+}
+
+void jfkeys_set_color(GUNUSED jfkeys *keys, GUNUSED int bg,
+	GUNUSED int bg_special, GUNUSED int text, GUNUSED int text_special)
+{
+	#ifdef FXCG50
+	keys->bg_color = bg;
+	keys->bg_special_color = bg_special;
+	keys->text_color = text;
+	keys->text_special_color = text_special;
+	#endif
+}
+
+void jfkeys_set_font(GUNUSED jfkeys *keys, GUNUSED font_t const *font)
+{
+	#ifdef FXCG50
+	keys->font = font;
 	#endif
 }
 
