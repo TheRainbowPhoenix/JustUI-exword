@@ -216,7 +216,7 @@ jevent jscene_run(jscene *s)
 		if(e.type != JSCENE_NONE && !jscene_process_event(s, e)) break;
 
 		/* Queued keyboard events */
-		key_event_t k = keydev_read(d);
+		key_event_t k = keydev_read(d, false, NULL);
 
 		if(k.type == KEYEV_DOWN && k.key == KEY_MENU && !k.shift && !k.alpha) {
 			if(s->mainmenu) {
