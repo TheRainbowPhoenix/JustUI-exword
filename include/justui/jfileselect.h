@@ -39,6 +39,8 @@ typedef struct {
     bool saveas;
     /* Whether we are currently using the input field */
     bool input_mode;
+    /* File filter; NULL accepts everything */
+    bool (*filter_function)(struct dirent const *entry);
 
     /* Current cursor position (0 .. folder_entries-1) */
     int16_t cursor;
@@ -95,6 +97,18 @@ char const *jfileselect_selected_file(jfileselect *fs);
 
 /* jfileselect_current_folder(): Get the path to the current folder */
 char const *jfileselect_current_folder(jfileselect *fs);
+
+/* jfileselect_set_filter(): Set a filter function
+
+   The function is called on each directory entry read when scanning a folder.
+   It should return true to show the entry, false to ignore it. By default,
+   jfileselect_default_filter is used. Note filters in general should really
+   accept folders. */
+void jfileselect_set_filter(jfileselect *fs,
+   bool (*filter)(struct dirent const *entry));
+
+/* Default filter. Rejects "@MainMem", "SAVE-F", "." and "..". */
+bool jfileselect_default_filter(struct dirent const *entry);
 
 /* Trivial properties */
 void jfileselect_set_font(jfileselect *fs, font_t const *font);

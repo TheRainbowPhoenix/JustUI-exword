@@ -56,6 +56,8 @@ jfileselect *jfileselect_create(void *parent)
 	fs->selected_file = NULL;
 	fs->saveas_input = input;
 	fs->saveas = false;
+	fs->input_mode = false;
+	fs->filter_function = jfileselect_default_filter;
 
 	fs->cursor = -1;
 	fs->scroll = 0;
@@ -166,28 +168,14 @@ static char *path_up(char const *path)
 	return parent;
 }
 
-static bool accept_entry(struct dirent *ent)
-{
-	/* TODO: jfileselect: Programmable filter */
-	if(!strcmp(ent->d_name, "@MainMem"))
-		return false;
-	if(!strcmp(ent->d_name, "SAVE-F"))
-		return false;
-	if(!strcmp(ent->d_name, "."))
-		return false;
-	if(!strcmp(ent->d_name, ".."))
-		return false;
-	return true;
-}
-
-static int count_accepted_entries(DIR *dp)
+static int count_accepted_entries(jfileselect *fs, DIR *dp)
 {
 	int n = 0;
 	struct dirent *ent;
 
 	rewinddir(dp);
 	while((ent = readdir(dp)))
-		n += accept_entry(ent);
+		n += (fs->filter_function ? fs->filter_function(ent) : 1);
 
 	return n;
 }
@@ -222,7 +210,7 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 		return false;
 
 	/* Count entries */
-	int n = count_accepted_entries(dp) + fs->saveas;
+	int n = count_accepted_entries(fs, dp) + fs->saveas;
 
 	/* Allocate memory for the fileinfo structures */
 	struct fileinfo *finfo = malloc(n * sizeof *finfo);
@@ -234,7 +222,7 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 	/* Read the fileinfo structures */
 	rewinddir(dp);
 	for(int i = 0; i < n && (ent = readdir(dp));) {
-		if(!accept_entry(ent))
+		if(fs->filter_function && !fs->filter_function(ent))
 			continue;
 
 		finfo[i].name = strdup(ent->d_name);
@@ -254,7 +242,7 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 			if(ent->d_type == DT_DIR) {
 				DIR *sub = opendir(full_path);
 				if(sub) {
-					finfo[i].size = count_accepted_entries(sub);
+					finfo[i].size = count_accepted_entries(fs, sub);
 					closedir(sub);
 				}
 			}
@@ -318,6 +306,25 @@ char const *jfileselect_selected_file(jfileselect *fs)
 char const *jfileselect_current_folder(jfileselect *fs)
 {
 	return fs->path;
+}
+
+void jfileselect_set_filter(jfileselect *fs,
+   bool (*filter)(struct dirent const *entry))
+{
+	fs->filter_function = filter;
+}
+
+bool jfileselect_default_filter(struct dirent const *ent)
+{
+	if(!strcmp(ent->d_name, "@MainMem"))
+		return false;
+	if(!strcmp(ent->d_name, "SAVE-F"))
+		return false;
+	if(!strcmp(ent->d_name, "."))
+		return false;
+	if(!strcmp(ent->d_name, ".."))
+		return false;
+	return true;
 }
 
 //---
