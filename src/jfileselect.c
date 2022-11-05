@@ -65,8 +65,10 @@ jfileselect *jfileselect_create(void *parent)
 
 #ifdef FX9860G
 	fs->line_spacing = 1;
+	fs->scrollbar_width = 1;
 #else
 	fs->line_spacing = 4;
+	fs->scrollbar_width = 2;
 #endif
 
 	fs->font = dfont_default();
@@ -132,6 +134,11 @@ void jfileselect_set_line_spacing(jfileselect *fs, int line_spacing)
 {
 	fs->line_spacing = line_spacing;
 	count_visible_lines(fs);
+}
+
+void jfileselect_set_scrollbar_width(jfileselect *fs, int scrollbar_width)
+{
+	fs->scrollbar_width = scrollbar_width;
 }
 
 void jfileselect_set_show_file_size(jfileselect *fs, bool show_file_size)
@@ -377,8 +384,14 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 
 	font_t const *old_font = dfont(fs->font);
 	int line_height = fs->font->line_height + fs->line_spacing;
-	int cw = jwidget_content_width(fs);
+	int cw = jwidget_content_width(fs) - 2 * fs->scrollbar_width;
+	int ch = jwidget_content_height(fs);
 	struct fileinfo *finfo = fs->entries;
+
+	bool scrollbar =
+		fs->entry_count > fs->visible_lines
+		&& fs->scrollbar_width > 0;
+	int entry_width = cw - (scrollbar ? 2 * fs->scrollbar_width : 0);
 
 	for(int i = 0; i < fs->visible_lines && i < fs->entry_count; i++) {
 		bool selected = (fs->cursor == fs->scroll + i);
@@ -398,15 +411,27 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 			continue;
 		}
 
-		if(selected)
-			drect(x, line_y, x + cw - 1, line_y + line_height - 1, C_BLACK);
+		if(selected) {
+			drect(x, line_y, x + entry_width - 1, line_y + line_height - 1,
+				C_BLACK);
+		}
 
 		dprint(x+2, text_y, fg, "%s%s", info->name, isfolder ? "/" : "");
 		if(fs->show_file_size && info->size >= 0) {
 			char str[32];
 			generate_info_string(str, isfolder, info->size);
-			dtext_opt(x+cw-3, text_y, fg, C_NONE, DTEXT_RIGHT, DTEXT_TOP, str);
+			dtext_opt(x + entry_width - 3, text_y, fg, C_NONE, DTEXT_RIGHT,
+				DTEXT_TOP, str);
 		}
+	}
+
+	if(scrollbar) {
+		int sb_y = ch * fs->scroll / fs->entry_count;
+		int sb_h = ch * fs->visible_lines / fs->entry_count;
+
+		drect(x + cw - fs->scrollbar_width, y + sb_y,
+		      x + cw - 1, y + sb_y + sb_h - 1,
+		      C_BLACK);
 	}
 
 	dfont(old_font);

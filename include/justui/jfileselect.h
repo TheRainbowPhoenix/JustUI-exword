@@ -39,6 +39,8 @@ typedef struct {
     bool saveas;
     /* Whether we are currently using the input field */
     bool input_mode;
+    /* Scrollbar with (0 to disable) */
+    int8_t scrollbar_width;
     /* File filter; NULL accepts everything */
     bool (*filter_function)(struct dirent const *entry);
 
@@ -113,6 +115,7 @@ bool jfileselect_default_filter(struct dirent const *entry);
 /* Trivial properties */
 void jfileselect_set_font(jfileselect *fs, font_t const *font);
 void jfileselect_set_line_spacing(jfileselect *fs, int line_spacing);
+void jfileselect_set_scrollbar_width(jfileselect *fs, int scrollbar_width);
 void jfileselect_set_show_file_size(jfileselect *fs, bool show_file_size);
 
 #endif /* _J_JFILESELECT */
