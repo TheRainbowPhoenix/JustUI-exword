@@ -63,7 +63,12 @@ jfileselect *jfileselect_create(void *parent)
 	fs->scroll = 0;
 	fs->visible_lines = 0;
 
+#ifdef FX9860G
+	fs->line_spacing = 1;
+#else
 	fs->line_spacing = 4;
+#endif
+
 	fs->font = dfont_default();
 	fs->show_file_size = false;
 
@@ -337,7 +342,7 @@ static void jfileselect_poly_csize(void *fs0)
 	jwidget *w = &fs->widget;
 
 	w->w = 128;
-	w->h = 6 * max(fs->font->line_height + fs->line_spacing, 0);
+	w->h = 3 * max(fs->font->line_height + fs->line_spacing, 0);
 }
 
 static void jfileselect_poly_layout(void *fs0)
@@ -345,6 +350,23 @@ static void jfileselect_poly_layout(void *fs0)
 	jfileselect *fs = fs0;
 	count_visible_lines(fs);
 	fs->saveas_input->widget.w = jwidget_content_width(fs) - 4;
+}
+
+static void generate_info_string(char *str, bool isfolder, int size)
+{
+#ifdef FX9860G
+	if(isfolder)
+		sprintf(str, "%d/", size);
+	else if(size < 10000) /* 10 kB */
+		sprintf(str, "%d", size);
+	else
+		sprintf(str, "%dk", size / 1000);
+#else
+	if(isfolder)
+		sprintf(str, "%d entries", size);
+	else
+		sprintf(str, "%d B", size);
+#endif
 }
 
 static void jfileselect_poly_render(void *fs0, int x, int y)
@@ -381,8 +403,9 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 
 		dprint(x+2, text_y, fg, "%s%s", info->name, isfolder ? "/" : "");
 		if(fs->show_file_size && info->size >= 0) {
-			dprint_opt(x + cw - 3, text_y, fg, C_NONE, DTEXT_RIGHT, DTEXT_TOP,
-				isfolder ? "%d entries" : "%d B", info->size);
+			char str[32];
+			generate_info_string(str, isfolder, info->size);
+			dtext_opt(x+cw-3, text_y, fg, C_NONE, DTEXT_RIGHT, DTEXT_TOP, str);
 		}
 	}
 
