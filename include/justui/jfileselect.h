@@ -60,7 +60,7 @@ typedef struct {
 
 } jfileselect;
 
-/* Type IDs */
+/* Event IDs */
 extern uint16_t JFILESELECT_LOADED;
 extern uint16_t JFILESELECT_VALIDATED;
 extern uint16_t JFILESELECT_CANCELED;

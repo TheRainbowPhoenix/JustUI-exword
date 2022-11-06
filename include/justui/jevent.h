@@ -43,6 +43,8 @@ typedef struct {
 	union {
 		/* JWIDGET_KEY events */
 		key_event_t key;
+		/* Custom generic value */
+		int data;
 	};
 
 } jevent;
