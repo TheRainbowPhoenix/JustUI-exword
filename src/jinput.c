@@ -85,9 +85,9 @@ void jinput_set_prompt(jinput *i, char const *prompt)
 
 static void insert_str(jinput *i, char const *str, size_t n)
 {
-	if(i->size + n > i->max) return;
+	if(i->size + n > i->max || i->cursor < 0) return;
 
-	/* Insert at cursor_pos, shift everything else right n places */
+	/* Insert at i->cursor, shift everything else right n places */
 	for(int k = i->size - 1; k >= i->cursor; k--)
 		i->text[k + n] = i->text[k];
 
@@ -131,7 +131,7 @@ static void insert_code_point(jinput *i, uint32_t p)
 
 static int previous(char const *str, int position)
 {
-	if(position == 0)
+	if(position <= 0)
 		return position;
 
 	while((str[--position] & 0xc0) == 0x80) {}
@@ -148,6 +148,7 @@ static int next(char const *str, int position)
 
 static void delete(jinput *i)
 {
+	if(i->cursor < 0) return;
 	int prev = previous(i->text, i->cursor);
 	int diff = i->cursor - prev;
 	if(!diff) return;

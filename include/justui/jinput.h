@@ -18,7 +18,7 @@
    an indicator displays the status of modifier keys.
 
    The edition rules support both the OS' native one-key-at-time input system,
-   and the usual computer modifer-keys-held method.
+   and the usual computer modifier-keys-held method.
 
    * The normal insertion mode is used by default.
    * When pressing SHIFT or ALPHA in combination with a key (without releasing
