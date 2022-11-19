@@ -231,12 +231,18 @@ jevent jscene_run(jscene *s)
 			continue;
 		}
 		#endif
+
+		getkey_feature_t feat = getkey_feature_function();
+		if((k.type == KEYEV_DOWN || k.type == KEYEV_HOLD) && feat && feat(k))
+			continue;
+
 		if(k.type != KEYEV_NONE && !jscene_process_key_event(s, k)) {
 			e.type = JWIDGET_KEY;
 			e.key = k;
 			break;
 		}
 
+		// TODO: Should only sleep when out of events!
 		sleep();
 	}
 
