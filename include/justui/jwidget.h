@@ -89,8 +89,10 @@ typedef struct jwidget {
 	uint visible        :1;
 	/* Widget is floating outside the layout (and positioned manually) */
 	uint floating       :1;
+	/* Widget is clipped during rendering */
+	uint clipped        :1;
 
-	uint :23;
+	uint :22;
 
 } jwidget;
 
@@ -357,6 +359,23 @@ bool jwidget_visible(void *w);
 
 /* jwidget_set_visible(): Hide or show a widget */
 void jwidget_set_visible(void *w, bool visible);
+
+/* jwidget_clipped(): Whether widget is clipped
+
+   If a widget is clipped then its rendering function cannot draw pixels
+   outside of its bounding box. There is no performance cost to this feature
+   because it relies on underlying gint rendering functions already supporting
+   clipping.
+
+   This is disabled by default because it is convenient to have widgets draw
+   outside their bounding box. For instance it is easier to align a single-
+   line label by setting the font's bearing as its height, and then drawing
+   glyphs' tails outside the bouding box. It is also harder to spot layout
+   issues if the widgets are clipped away. */
+bool jwidget_clipped(void *w);
+
+/* jwidget_set_clipped(): Set a widget's rendering clipping preference */
+void jwidget_set_clipped(void *w, bool clipped);
 
 /* jwidget_needs_update(): Check whether the tree needs to be re-rendered
 

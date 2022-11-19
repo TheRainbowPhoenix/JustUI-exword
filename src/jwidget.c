@@ -109,6 +109,7 @@ void jwidget_init(jwidget *w, int type, void *parent)
 	w->dirty = 1;
 	w->visible = 1;
 	w->floating = 0;
+	w->clipped = 0;
 
 	w->type = type;
 	w->geometry = NULL;
@@ -597,6 +598,21 @@ void jwidget_set_floating(void *w0, bool floating)
 	if(w->parent) w->parent->dirty = 1;
 }
 
+bool jwidget_clipped(void *w0)
+{
+	J_CAST(w)
+	return w->clipped;
+}
+
+void jwidget_set_clipped(void *w0, bool clipped)
+{
+	J_CAST(w)
+	if(w->clipped == clipped) return;
+
+	w->clipped = (clipped != 0);
+	w->update = 1;
+}
+
 //---
 // Rendering
 //---
@@ -643,7 +659,18 @@ void jwidget_render(void *w0, int x, int y)
 	y += g->margin.top  + b.top  + g->padding.top;
 
 	jwidget_poly const *poly = widget_types[w->type];
-	if(poly->render) poly->render(w, x, y);
+	if(poly->render) {
+		if(w->clipped) {
+			struct dwindow win = { x, y, x+cw, y+ch };
+			win = intersect_dwindow(win, dwindow);
+			struct dwindow old_window = dwindow_set(win);
+			poly->render(w, x, y);
+			dwindow_set(old_window);
+		}
+		else {
+			poly->render(w, x, y);
+		}
+	}
 
 	w->update = 0;
 }
