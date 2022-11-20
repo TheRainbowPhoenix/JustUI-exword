@@ -29,6 +29,7 @@ add_library(${NAME} STATIC
   src/jpainted.c
   src/jfkeys.c
   src/jfileselect.c
+  src/jframe.c
   src/vec.c
   src/keymap.c
   ${ASSETS_${FXSDK_PLATFORM}}

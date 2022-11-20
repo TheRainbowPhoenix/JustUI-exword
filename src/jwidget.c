@@ -663,9 +663,13 @@ void jwidget_render(void *w0, int x, int y)
 		if(w->clipped) {
 			struct dwindow win = { x, y, x+cw, y+ch };
 			win = intersect_dwindow(win, dwindow);
-			struct dwindow old_window = dwindow_set(win);
-			poly->render(w, x, y);
-			dwindow_set(old_window);
+
+			/* Skip rendering out-of-view widgets */
+			if(win.right > win.left && win.bottom > win.top) {
+				struct dwindow old_window = dwindow_set(win);
+				poly->render(w, x, y);
+				dwindow_set(old_window);
+			}
 		}
 		else {
 			poly->render(w, x, y);
