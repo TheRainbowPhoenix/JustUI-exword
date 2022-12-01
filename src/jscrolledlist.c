@@ -21,7 +21,6 @@ jscrolledlist *jscrolledlist_create(void *parent,
 
     jwidget_init(&l->widget, jscrolledlist_type_id, parent);
     jwidget_set_stretch(l, 1, 1, false);
-    jlayout_set_vbox(l);
 
     l->frame = jframe_create(l);
     jwidget_set_stretch(l->frame, 1, 1, false);
@@ -33,31 +32,49 @@ jscrolledlist *jscrolledlist_create(void *parent,
     return l;
 }
 
+static void shake_scroll(jscrolledlist *l, bool clamp)
+{
+    int cursor = jlist_selected_item(l->list);
+    if(cursor >= 0) {
+        jrect r = jlist_selected_region(l->list);
+        jframe_scroll_to_region(l->frame, r, clamp);
+    }
+}
+
 //---
 // Polymorphic widget operations
 //---
+
+static void jscrolledlist_poly_layout(void *l0)
+{
+    jscrolledlist *l = l0;
+
+    l->frame->widget.x = 0;
+    l->frame->widget.y = 0;
+    l->frame->widget.w = jwidget_content_width(l);
+    l->frame->widget.h = jwidget_content_height(l);
+
+    shake_scroll(l, false);
+}
 
 static bool jscrolledlist_poly_event(void *l0, jevent e)
 {
     jscrolledlist *l = l0;
 
-    if((e.type == JLIST_SELECTION_MOVED || e.type == JLIST_MODEL_UPDATED)
-            && e.source == l->list) {
-        int cursor = jlist_selected_item(l->list);
-        if(cursor >= 0) {
-            jrect r = jlist_selected_region(l->list);
-            jframe_scroll_to_region(l->frame, r);
-            /* Allow the event to propagate up */
-            return false;
-        }
-    }
+    if(e.type == JLIST_SELECTION_MOVED && e.source == l->list)
+        shake_scroll(l, true);
 
+    if(e.type == JLIST_MODEL_UPDATED && e.source == l->list)
+        shake_scroll(l, true);
+
+    /* Allow the evnts to bubble up */
     return false;
 }
 
 /* jscrolledlist type definition */
 static jwidget_poly type_jscrolledlist = {
     .name    = "jscrolledlist",
+    .layout  = jscrolledlist_poly_layout,
     .event   = jscrolledlist_poly_event,
 };
 

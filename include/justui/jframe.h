@@ -81,7 +81,11 @@ void jframe_set_visibility_margin(jframe *f, int margin_x, int margin_y);
    If either dimension of the provided region is larger than the content size
    of the frame minus the visibility margin, the center of the region will be
    shown at the center of the view along that direciton. Otherwise, the view
-   will scroll the minimum amount possible to bring the region into view. */
-void jframe_scroll_to_region(jframe *f, jrect region);
+   will scroll the minimum amount possible to bring the region into view.
+
+   If clamp is set to false, the frame will allow scrolling beyond current
+   boundaries, which is helpful as a hack when calling this function while a
+   layout is occuring. */
+void jframe_scroll_to_region(jframe *f, jrect region, bool clamp);
 
 #endif /* _J_JFRAME */

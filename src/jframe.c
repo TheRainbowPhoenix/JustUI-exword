@@ -140,7 +140,7 @@ void jframe_set_visibility_margin(jframe *f, int margin_x, int margin_y)
 // Scrolling
 //---
 
-void jframe_scroll_to_region(jframe *f, jrect region)
+void jframe_scroll_to_region(jframe *f, jrect region, bool do_clamp)
 {
     jwidget *child = frame_child(f);
     if(!child)
@@ -180,8 +180,10 @@ void jframe_scroll_to_region(jframe *f, jrect region)
         f->scroll_y = clamp(f->scroll_y, y2 - vp_y2, y1 - vp_y1);
 
     /* Safety clamp */
-    f->scroll_x = clamp(f->scroll_x, 0, f->max_scroll_x);
-    f->scroll_y = clamp(f->scroll_y, 0, f->max_scroll_y);
+    if(do_clamp) {
+        f->scroll_x = clamp(f->scroll_x, 0, f->max_scroll_x);
+        f->scroll_y = clamp(f->scroll_y, 0, f->max_scroll_y);
+    }
     f->widget.update = 1;
 }
 
