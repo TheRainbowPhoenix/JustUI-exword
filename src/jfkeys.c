@@ -55,7 +55,11 @@ void jfkeys_set(jfkeys *f, char const *labels)
 static char const *get_level(char const *labels, int level)
 {
 	/* Navigate to level */
-	while(level > 0) labels = strchrnul(labels, '|');
+	while(level > 0) {
+		labels = strchrnul(labels, '|');
+		labels += (*labels == '|');
+		level--;
+	}
 	return (*labels == 0) ? NULL : labels;
 }
 
