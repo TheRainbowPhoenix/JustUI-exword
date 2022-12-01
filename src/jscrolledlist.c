@@ -1,0 +1,68 @@
+#include <justui/jwidget.h>
+#include <justui/jwidget-api.h>
+#include <justui/jscrolledlist.h>
+#include "util.h"
+
+#include <stdlib.h>
+
+/* Type identifier for jscrolledlist */
+static int jscrolledlist_type_id = -1;
+
+jscrolledlist *jscrolledlist_create(void *parent,
+    jlist_item_info_function info_function,
+    jlist_item_paint_function paint_function)
+{
+    if(jscrolledlist_type_id < 0)
+        return NULL;
+
+    jscrolledlist *l = malloc(sizeof *l);
+    if(!l)
+        return NULL;
+
+    jwidget_init(&l->widget, jscrolledlist_type_id, parent);
+    jwidget_set_stretch(l, 1, 1, false);
+    jlayout_set_vbox(l);
+
+    l->frame = jframe_create(l);
+    jwidget_set_stretch(l->frame, 1, 1, false);
+    jframe_set_align(l->frame, J_ALIGN_LEFT, J_ALIGN_TOP);
+
+    l->list = jlist_create(l->frame, info_function, paint_function);
+    jwidget_set_stretch(l->list, 1, 1, false);
+
+    return l;
+}
+
+//---
+// Polymorphic widget operations
+//---
+
+static bool jscrolledlist_poly_event(void *l0, jevent e)
+{
+    jscrolledlist *l = l0;
+
+    if((e.type == JLIST_SELECTION_MOVED || e.type == JLIST_MODEL_UPDATED)
+            && e.source == l->list) {
+        int cursor = jlist_selected_item(l->list);
+        if(cursor >= 0) {
+            jrect r = jlist_selected_region(l->list);
+            jframe_scroll_to_region(l->frame, r);
+            /* Allow the event to propagate up */
+            return false;
+        }
+    }
+
+    return false;
+}
+
+/* jscrolledlist type definition */
+static jwidget_poly type_jscrolledlist = {
+    .name    = "jscrolledlist",
+    .event   = jscrolledlist_poly_event,
+};
+
+__attribute__((constructor(1002)))
+static void j_register_jscrolledlist(void)
+{
+    jscrolledlist_type_id = j_register_widget(&type_jscrolledlist, "jwidget");
+}

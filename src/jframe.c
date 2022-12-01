@@ -34,9 +34,13 @@ jframe *jframe_create(void *parent)
 #ifdef FX9860G
     f->scrollbar_width = 1;
     f->scrollbar_spacing = 1;
+    f->visibility_margin_x = 4;
+    f->visibility_margin_y = 4;
 #else
     f->scrollbar_width = 2;
     f->scrollbar_spacing = 2;
+    f->visibility_margin_x = 8;
+    f->visibility_margin_y = 8;
 #endif
 
     f->scroll_x = 0;
@@ -47,11 +51,11 @@ jframe *jframe_create(void *parent)
     return f;
 }
 
-static jwidget *frame_child(jframe *j)
+static jwidget *frame_child(jframe *f)
 {
-    if(j->widget.child_count == 0)
+    if(f->widget.child_count == 0)
         return NULL;
-    return j->widget.children[0];
+    return f->widget.children[0];
 }
 
 static int frame_scrollbar_space_size(jframe *f)
@@ -83,37 +87,102 @@ static int aligned_start_within(int B, int S, jalign align)
 // Getters and setters
 //---
 
-void jframe_set_align(jframe *j, jalign halign, jalign valign)
+void jframe_set_align(jframe *f, jalign halign, jalign valign)
 {
-    if(j->halign == halign && j->valign == valign)
+    if(f->halign == halign && f->valign == valign)
         return;
 
-    j->halign = halign;
-    j->valign = valign;
-    j->widget.update = 1;
+    f->halign = halign;
+    f->valign = valign;
+    f->widget.update = 1;
 }
 
-void jframe_set_scrollbars_always_visible(jframe *j, bool always_visible)
+void jframe_set_scrollbars_always_visible(jframe *f, bool always_visible)
 {
-    if(j->scrollbars_always_visible == always_visible)
+    if(f->scrollbars_always_visible == always_visible)
         return;
 
-    j->scrollbars_always_visible = always_visible;
-    j->widget.dirty = 1;
+    f->scrollbars_always_visible = always_visible;
+    f->widget.dirty = 1;
 }
 
-void jframe_set_floating_scrollbars(jframe *j, bool floating_scrollbars)
+void jframe_set_floating_scrollbars(jframe *f, bool floating_scrollbars)
 {
-    if(j->floating_scrollbars == floating_scrollbars)
+    if(f->floating_scrollbars == floating_scrollbars)
         return;
 
-    j->floating_scrollbars = floating_scrollbars;
-    j->widget.dirty = 1;
+    f->floating_scrollbars = floating_scrollbars;
+    f->widget.dirty = 1;
 }
 
-void jframe_set_keyboard_control(jframe *j, bool keyboard_control)
+void jframe_set_keyboard_control(jframe *f, bool keyboard_control)
 {
-    j->keyboard_control = keyboard_control;
+    f->keyboard_control = keyboard_control;
+}
+
+void jframe_set_match_size(jframe *f, bool match_width, bool match_height)
+{
+    if(f->match_width == match_width && f->match_height == match_height)
+        return;
+
+    f->match_width = match_width;
+    f->match_height = match_height;
+    f->widget.dirty = 1;
+}
+
+void jframe_set_visibility_margin(jframe *f, int margin_x, int margin_y)
+{
+    f->visibility_margin_x = margin_x;
+    f->visibility_margin_y = margin_y;
+}
+
+//---
+// Scrolling
+//---
+
+void jframe_scroll_to_region(jframe *f, jrect region)
+{
+    jwidget *child = frame_child(f);
+    if(!child)
+        return;
+
+    int x1 = region.x, x2 = x1 + region.w;
+    int y1 = region.y, y2 = y1 + region.h;
+
+    /* Clipping */
+    x1 = max(x1, 0);
+    y1 = max(y1, 0);
+    x2 = min(x2, jwidget_full_width(child));
+    y2 = min(y2, jwidget_full_height(child));
+
+    /* Viewport region
+       TODO: Handle oversized visibility margin properly */
+    int vp_x1 = f->visibility_margin_x;
+    int vp_x2 = jwidget_content_width(f) - f->visibility_margin_x;
+    int vp_y1 = f->visibility_margin_y;
+    int vp_y2 = jwidget_content_height(f) - f->visibility_margin_y;
+
+    /* If the requested region doesn't fit in the viewport, center on it */
+    if(x2 - x1 > vp_x2 - vp_x1)
+        f->scroll_x = (x1 + x2) / 2 - (vp_x1 + vp_x2) / 2;
+    /* The visible region for some scroll_x is
+         scroll_x + vp_x1 ... scroll_x + vp_x2
+       The minimum/maximum value for scroll_x are when
+         x2 - scroll_x = vp_x2 (region x2 touches viewport x2)
+         x1 - scroll_x = vp_x1 (region x1 touches viewport x1)
+       The max is >= the min due to the guard on the if. */
+    else
+        f->scroll_x = clamp(f->scroll_x, x2 - vp_x2, x1 - vp_x1);
+
+    if(y2 - y1 > vp_y2 - vp_y1)
+        f->scroll_y = (y1 + y2) / 2 - (vp_y1 + vp_y2) / 2;
+    else
+        f->scroll_y = clamp(f->scroll_y, y2 - vp_y2, y1 - vp_y1);
+
+    /* Safety clamp */
+    f->scroll_x = clamp(f->scroll_x, 0, f->max_scroll_x);
+    f->scroll_y = clamp(f->scroll_y, 0, f->max_scroll_y);
+    f->widget.update = 1;
 }
 
 //---

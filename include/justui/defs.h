@@ -21,6 +21,12 @@ typedef struct {
 	uint8_t left;
 } jdirs;
 
+/* jrect: Small rectangle */
+typedef struct {
+	int16_t x, y;
+	int16_t w, h;
+} jrect;
+
 /* jalign: Alignment options with both horizontal and vertical names */
 typedef enum {
 	/* Horizontal names */

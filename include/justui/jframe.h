@@ -39,6 +39,9 @@ typedef struct {
     /* If floating_scrollbars == false, spacing between scrollbars and child */
     uint8_t scrollbar_spacing;
 
+    /* Visibility margin (see jframe_scroll_to_region()) */
+    uint8_t visibility_margin_x, visibility_margin_y;
+
     /* Whether scrollbars are shown */
     bool scrollbar_x, scrollbar_y;
     /* Current scroll offsets */
@@ -56,10 +59,29 @@ typedef struct {
 jframe *jframe_create(void *parent);
 
 /* Trivial properties */
-void jframe_set_align(jframe *j, jalign halign, jalign valign);
-void jframe_set_scrollbars_always_visible(jframe *j, bool always_visible);
-void jframe_set_floating_scrollbars(jframe *j, bool floating_scrollbars);
-void jframe_set_keyboard_control(jframe *j, bool keyboard_control);
-void jframe_set_match_size(jframe *j, bool match_width, bool match_height);
+void jframe_set_align(jframe *f, jalign halign, jalign valign);
+void jframe_set_scrollbars_always_visible(jframe *f, bool always_visible);
+void jframe_set_floating_scrollbars(jframe *f, bool floating_scrollbars);
+void jframe_set_keyboard_control(jframe *f, bool keyboard_control);
+void jframe_set_match_size(jframe *f, bool match_width, bool match_height);
+void jframe_set_visibility_margin(jframe *f, int margin_x, int margin_y);
+
+/* jframe_scroll_to_region(): Scroll a region of the child into view
+
+   This functions scrolls the frame to ensure that the specified region of the
+   child widget is visible within the frame (minus the visibility margin).
+
+   The purpose of the visibility margin is to avoid aligning important regions
+   of the child widget along the edges of the frame unless we reach the edge of
+   the child widget. For example, with a scrolling list, we want the selected
+   item to be somewhat off the edge of the frame so that items around it are
+   visible. Showing the selected item right on the edge of the frame suggests
+   to the user that there are no items beyond it.
+
+   If either dimension of the provided region is larger than the content size
+   of the frame minus the visibility margin, the center of the region will be
+   shown at the center of the view along that direciton. Otherwise, the view
+   will scroll the minimum amount possible to bring the region into view. */
+void jframe_scroll_to_region(jframe *f, jrect region);
 
 #endif /* _J_JFRAME */
