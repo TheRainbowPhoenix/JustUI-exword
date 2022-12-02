@@ -117,7 +117,9 @@ void jlist_update_model(jlist *l, int item_count)
     if(l->item_count != item_count) {
         l->items = realloc(l->items, item_count * sizeof *l->items);
         if(!l->items) {
-            item_count = 0;
+            l->item_count = 0;
+            l->cursor = -1;
+            l->widget.dirty = 1;
             return;
         }
     }
