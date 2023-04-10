@@ -1,7 +1,7 @@
 # Just UI
 
 cmake_minimum_required(VERSION 3.16)
-project(JustUI VERSION 1.2.0 LANGUAGES C)
+project(JustUI VERSION 1.3.0 LANGUAGES C)
 find_package(Gint 2.8 REQUIRED)
 include(Fxconv)
 
