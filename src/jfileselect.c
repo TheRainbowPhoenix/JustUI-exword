@@ -226,7 +226,7 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 
 	/* Allocate memory for the fileinfo structures */
 	struct fileinfo *finfo = malloc(n * sizeof *finfo);
-	if(!finfo) {
+	if(n && !finfo) {
 		closedir(dp);
 		return false;
 	}
@@ -379,7 +379,7 @@ static void generate_info_string(char *str, bool isfolder, int size)
 static void jfileselect_poly_render(void *fs0, int x, int y)
 {
 	jfileselect *fs = fs0;
-	if(!fs->path || !fs->entries)
+	if(!fs->path)
 		return;
 
 	font_t const *old_font = dfont(fs->font);
@@ -392,6 +392,11 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 		fs->entry_count > fs->visible_lines
 		&& fs->scrollbar_width > 0;
 	int entry_width = cw - (scrollbar ? 2 * fs->scrollbar_width : 0);
+
+	if(!fs->entries || fs->entry_count == 0) {
+		int text_y = y + (fs->line_spacing + 0) / 2;
+		dprint(x+2, text_y, C_BLACK, "(No entries)");
+	}
 
 	for(int i = 0; i < fs->visible_lines && i < fs->entry_count; i++) {
 		bool selected = (fs->cursor == fs->scroll + i);
@@ -440,7 +445,7 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 static bool jfileselect_poly_event(void *fs0, jevent e)
 {
 	jfileselect *fs = fs0;
-	if(!fs->path || !fs->entries)
+	if(!fs->path)
 		return false;
 
 	if(e.type == JINPUT_CANCELED && e.source == fs->saveas_input) {
@@ -510,7 +515,7 @@ static bool jfileselect_poly_event(void *fs0, jevent e)
 				return true;
 			}
 		}
-		else if(key == KEY_EXE) {
+		else if(key == KEY_EXE && fs->entries) {
 			struct fileinfo *finfo = fs->entries;
 			struct fileinfo *i = &finfo[fs->cursor];
 
