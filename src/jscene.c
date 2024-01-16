@@ -53,6 +53,7 @@ jscene *jscene_create(int x, int y, int w, int h, void *parent)
 	s->queue_next = 0;
 	s->lost_events = 0;
 	s->mainmenu = true;
+	s->poweroff = true;
 
 	/* Prepare first layout/paint operation */
 	s->widget.dirty = 1;
@@ -221,6 +222,13 @@ jevent jscene_run(jscene *s)
 		if(k.type == KEYEV_DOWN && k.key == KEY_MENU && !k.shift && !k.alpha) {
 			if(s->mainmenu) {
 				gint_osmenu();
+				jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
+				continue;
+			}
+		}
+		if(k.type == KEYEV_DOWN && k.key == KEY_ACON && k.shift && !k.alpha) {
+			if(s->poweroff) {
+				gint_poweroff(true);
 				jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
 				continue;
 			}

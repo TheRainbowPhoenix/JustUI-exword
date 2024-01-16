@@ -33,6 +33,8 @@ typedef struct {
    uint16_t lost_events;
    /* Whether jscene_run() returns to the main menu */
    bool mainmenu;
+   /* Whether jscene_run() powers off */
+   bool poweroff;
 
 } jscene;
 
@@ -109,6 +111,12 @@ bool jscene_process_event(jscene *scene, jevent event);
    Disabling this is useful if you want to catch the MENU key or clean up
    resources before invoking the main menu. */
 void jscene_set_mainmenu(jscene *scene, bool mainmenu);
+
+/* jscene_set_poweroff(): Set whether jscene_run() will poweroff
+   This type of poweroff (SHIFT+AC/ON) doesn't allow return to menu, so the
+   add-in "must" resume after powering on again, however sensitive programs
+   will probably want to save important data before leaving anyway. */
+void jscene_set_poweroff(jscene *scene, bool poweroff);
 
 /* jscene_run(): Run a scene's main loop
 
