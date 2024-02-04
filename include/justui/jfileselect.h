@@ -30,6 +30,8 @@ typedef struct {
     void *entries;
     /* Number of entries in the current folder */
     int entry_count;
+    /* Error code for loaded folder */
+    int folder_error;
 
     /* Full path to file last selected with EXE */
     char *selected_file;

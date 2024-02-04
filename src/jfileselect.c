@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/stat.h>
 
 /* Type identifier for jfileselect */
@@ -52,6 +53,7 @@ jfileselect *jfileselect_create(void *parent)
 	fs->path = NULL;
 	fs->entries = NULL;
 	fs->entry_count = 0;
+	fs->folder_error = 0;
 
 	fs->selected_file = NULL;
 	fs->saveas_input = input;
@@ -215,11 +217,15 @@ static int compare_entries(void const *i1_0, void const *i2_0)
 static bool load_folder_switch(jfileselect *fs, char *path)
 {
 	set_finfo(fs, NULL, 0);
+	free(fs->path);
+	fs->path = path;
 
 	struct dirent *ent;
 	DIR *dp = opendir(path);
-	if(!dp)
+	if(!dp) {
+		fs->folder_error = errno;
 		return false;
+	}
 
 	/* Count entries */
 	int n = count_accepted_entries(fs, dp) + fs->saveas;
@@ -228,6 +234,7 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 	struct fileinfo *finfo = malloc(n * sizeof *finfo);
 	if(n && !finfo) {
 		closedir(dp);
+		fs->folder_error = errno;
 		return false;
 	}
 
@@ -246,6 +253,7 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 			for(int j = 0; j < i; j++) free(finfo[j].name);
 			free(finfo);
 			closedir(dp);
+			fs->folder_error = errno;
 			return false;
 		}
 
@@ -256,6 +264,9 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 				if(sub) {
 					finfo[i].size = count_accepted_entries(fs, sub);
 					closedir(sub);
+				}
+				else {
+					finfo[i].size = -errno;
 				}
 			}
 			else {
@@ -278,18 +289,20 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 	qsort(finfo, n, sizeof *finfo, compare_entries);
 
 	closedir(dp);
-	free(fs->path);
-	fs->path = path;
 	set_finfo(fs, finfo, n);
-	fs->widget.update = true;
-
-	jwidget_emit(fs, (jevent){ .type = JFILESELECT_LOADED });
+	fs->folder_error = 0;
 	return true;
 }
 
 static bool load_folder(jfileselect *fs, char *path)
 {
-	return gint_world_switch(GINT_CALL(load_folder_switch, (void *)fs, path));
+	bool ok =
+		gint_world_switch(GINT_CALL(load_folder_switch, (void *)fs, path));
+
+	fs->widget.update = true;
+	jwidget_emit(fs, (jevent){ .type = JFILESELECT_LOADED });
+
+	return ok;
 }
 
 bool jfileselect_browse(jfileselect *fs, char const *path)
@@ -298,8 +311,7 @@ bool jfileselect_browse(jfileselect *fs, char const *path)
 	if(!path_copy)
 		return false;
 
-	if(!load_folder(fs, path_copy))
-		return false;
+	bool ok = load_folder(fs, path_copy);
 
 	free(fs->selected_file);
 	fs->selected_file = NULL;
@@ -307,7 +319,7 @@ bool jfileselect_browse(jfileselect *fs, char const *path)
 	fs->cursor = 0;
 	fs->scroll = 0;
 	stop_input(fs);
-	return true;
+	return ok;
 }
 
 char const *jfileselect_selected_file(jfileselect *fs)
@@ -362,14 +374,18 @@ static void jfileselect_poly_layout(void *fs0)
 static void generate_info_string(char *str, bool isfolder, int size)
 {
 #ifdef FX9860G
-	if(isfolder)
+	if(size < 0)
+		sprintf(str, "E%d", -size);
+	else if(isfolder)
 		sprintf(str, "%d/", size);
 	else if(size < 10000) /* 10 kB */
 		sprintf(str, "%d", size);
 	else
 		sprintf(str, "%dk", size / 1000);
 #else
-	if(isfolder)
+	if(size < 0)
+		sprintf(str, "E%d", -size);
+	else if(isfolder)
 		sprintf(str, "%d entries", size);
 	else
 		sprintf(str, "%d B", size);
@@ -379,8 +395,6 @@ static void generate_info_string(char *str, bool isfolder, int size)
 static void jfileselect_poly_render(void *fs0, int x, int y)
 {
 	jfileselect *fs = fs0;
-	if(!fs->path)
-		return;
 
 	font_t const *old_font = dfont(fs->font);
 	int line_height = fs->font->line_height + fs->line_spacing;
@@ -393,9 +407,15 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 		&& fs->scrollbar_width > 0;
 	int entry_width = cw - (scrollbar ? 2 * fs->scrollbar_width : 0);
 
+	if(fs->folder_error) {
+		int text_y = y + (fs->line_spacing + 0) / 2;
+		dprint(x, text_y, C_BLACK, "(E%d)", fs->folder_error);
+		return;
+	}
 	if(!fs->entries || fs->entry_count == 0) {
 		int text_y = y + (fs->line_spacing + 0) / 2;
-		dprint(x+2, text_y, C_BLACK, "(No entries)");
+		dprint(x, text_y, C_BLACK, "(No entries)");
+		return;
 	}
 
 	for(int i = 0; i < fs->visible_lines && i < fs->entry_count; i++) {
@@ -422,7 +442,7 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 		}
 
 		dprint(x+2, text_y, fg, "%s%s", info->name, isfolder ? "/" : "");
-		if(fs->show_file_size && info->size >= 0) {
+		if(fs->show_file_size) {
 			char str[32];
 			generate_info_string(str, isfolder, info->size);
 			dtext_opt(x + entry_width - 3, text_y, fg, C_NONE, DTEXT_RIGHT,
