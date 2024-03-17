@@ -11,6 +11,9 @@
 
 #include <gint/display.h>
 
+/* Keymap function for jinput. See jinput_set_keymap_function(). */
+typedef uint32_t jinput_keymap_function_t(int key, bool shift, bool alpha);
+
 /* jinput: One-line input field
 
    This widget is used to read input from the user. It has a single line of
@@ -63,6 +66,9 @@ typedef struct {
 	/* Timer ID for the cursor state */
 	int8_t timer;
 
+	/* Custom keymap function (may be NULL) */
+	jinput_keymap_function_t *keymap_fun;
+
 } jinput;
 
 /* Type IDs */
@@ -80,6 +86,15 @@ jinput *jinput_create(char const *prompt, size_t length, void *parent);
 void jinput_set_text_color(jinput *input, int color);
 void jinput_set_font(jinput *input, font_t const *font);
 void jinput_set_prompt(jinput *input, char const *prompt);
+
+/* Set a custom keymap function. The keymap function is called when a key is
+   pressed that should produce input in the field. The following parameters are
+   provided:
+   * key is the code for the pressed key (<gint/keycodes.h>)
+   * shift and alpha indicate the state of modifiers
+   The function should return a Unicode code point. Note that jinput can deal
+   with any Unicode code point but the font used for the jinput might not! */
+void jinput_set_keymap_function(jinput *input, jinput_keymap_function_t *kf);
 
 /* Current value visible in the widget, normally useful upon receiving the
    JINPUT_VALIDATED event, not guaranteed otherwise */

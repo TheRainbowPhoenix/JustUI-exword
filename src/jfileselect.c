@@ -28,9 +28,9 @@ struct fileinfo {
 	/* Entry name (owned by the structure) */
 	char *name;
 	/* File size in bytes if file, number of entries if folder */
-	int size;
+	int size :24;
 	/* Type from [struct dirent], -1 for the "Save As" entry */
-	int type;
+	int8_t type;
 };
 
 jfileselect *jfileselect_create(void *parent)

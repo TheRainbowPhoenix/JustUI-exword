@@ -56,6 +56,7 @@ jinput *jinput_create(char const *prompt, size_t length, void *parent)
 
 	i->mode = JINPUT_FLAT;
 	i->timer = -1;
+	i->keymap_fun = NULL;
 
 	return i;
 }
@@ -77,6 +78,11 @@ void jinput_set_prompt(jinput *i, char const *prompt)
 {
 	i->prompt = prompt;
 	i->widget.dirty = 1;
+}
+
+void jinput_set_keymap_function(jinput *i, jinput_keymap_function_t *kf)
+{
+	i->keymap_fun = kf;
 }
 
 //---
@@ -305,7 +311,10 @@ static bool jinput_poly_event(void *i0, jevent e)
 				i->mode |= JINPUT_ALPHA;
 		}
 		else {
-			uint32_t code_point = keymap_translate(ev.key,
+			jinput_keymap_function_t *kf = i->keymap_fun;
+			if(!kf)
+				kf = &keymap_translate;
+			uint32_t code_point = (*kf)(ev.key,
 				(i->mode & JINPUT_SHIFT) || (i->mode & JINPUT_SHIFT_LOCK),
 				(i->mode & JINPUT_ALPHA) || (i->mode & JINPUT_ALPHA_LOCK)
 			);
