@@ -4,17 +4,27 @@
 #include "util.h"
 
 #include <gint/display.h>
+#include <gint/config.h>
 
 #include <stdlib.h>
 
 /* Type identifier for jframe */
 static int jframe_type_id = -1;
 
+#if GINT_RENDER_MONO
+# define JFRAME_SCROLLBAR_WIDTH 1
+# define JFRAME_SCROLLBAR_SPACING 1
+# define JFRAME_DEFAULT_MARGIN 4
+#elif GINT_RENDER_RGB
+# define JFRAME_SCROLLBAR_WIDTH 2
+# define JFRAME_SCROLLBAR_SPACING 2
+# define JFRAME_DEFAULT_MARGIN 8
+#endif
+
 jframe *jframe_create(void *parent)
 {
     if(jframe_type_id < 0)
         return NULL;
-
 
     jframe *f = malloc(sizeof *f);
     if(!f)
@@ -30,18 +40,11 @@ jframe *jframe_create(void *parent)
     f->keyboard_control = false;
     f->match_width = false;
     f->match_height = false;
+    f->scrollbar_width = JFRAME_SCROLLBAR_WIDTH;
+    f->scrollbar_spacing = JFRAME_SCROLLBAR_SPACING;
 
-#ifdef FX9860G
-    f->scrollbar_width = 1;
-    f->scrollbar_spacing = 1;
-    f->visibility_margin_x = 4;
-    f->visibility_margin_y = 4;
-#else
-    f->scrollbar_width = 2;
-    f->scrollbar_spacing = 2;
-    f->visibility_margin_x = 8;
-    f->visibility_margin_y = 8;
-#endif
+    f->visibility_margin_x = JFRAME_DEFAULT_MARGIN;
+    f->visibility_margin_y = JFRAME_DEFAULT_MARGIN;
 
     f->scroll_x = 0;
     f->scroll_y = 0;

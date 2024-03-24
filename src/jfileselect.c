@@ -4,6 +4,7 @@
 
 #include <gint/display.h>
 #include <gint/gint.h>
+#include <gint/config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,16 @@
 
 /* Type identifier for jfileselect */
 static int jfileselect_type_id = -1;
+
+#if GINT_RENDER_MONO
+# define JFILESELECT_LINE_SPACING 1
+# define JFILESELECT_SCROLLBAR_WIDTH 1
+# define JFILESELECT_INFO_SHORT 1
+#elif GINT_RENDER_RGB
+# define JFILESELECT_LINE_SPACING 4
+# define JFILESELECT_SCROLLBAR_WIDTH 2
+# define JFILESELECT_INFO_SHORT 0
+#endif
 
 /* Events */
 uint16_t JFILESELECT_LOADED;
@@ -59,20 +70,14 @@ jfileselect *jfileselect_create(void *parent)
 	fs->saveas_input = input;
 	fs->saveas = false;
 	fs->input_mode = false;
+	fs->scrollbar_width = JFILESELECT_SCROLLBAR_WIDTH;
 	fs->filter_function = jfileselect_default_filter;
 
 	fs->cursor = -1;
 	fs->scroll = 0;
 	fs->visible_lines = 0;
 
-#ifdef FX9860G
-	fs->line_spacing = 1;
-	fs->scrollbar_width = 1;
-#else
-	fs->line_spacing = 4;
-	fs->scrollbar_width = 2;
-#endif
-
+	fs->line_spacing = JFILESELECT_LINE_SPACING;
 	fs->font = dfont_default();
 	fs->show_file_size = false;
 
@@ -373,7 +378,7 @@ static void jfileselect_poly_layout(void *fs0)
 
 static void generate_info_string(char *str, bool isfolder, int size)
 {
-#ifdef FX9860G
+#if JFILESELECT_INFO_SHORT
 	if(size < 0)
 		sprintf(str, "E%d", -size);
 	else if(isfolder)

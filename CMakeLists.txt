@@ -11,6 +11,7 @@ configure_file(include/justui/config.h.in include/justui/config.h)
 
 set(ASSETS_fx
   assets/input-modes-fx.png
+  assets/font-fkeys-fx.png
 )
 set(ASSETS_cg
   assets/input-modes-cg.png

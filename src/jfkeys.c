@@ -7,45 +7,39 @@
 /* Type identified for jfkeys */
 static int jfkeys_type_id = -1;
 
-#ifdef FX9860G
-jfkeys *jfkeys_create(bopti_image_t const *img, void *parent)
+extern font_t j_font_fkeys_fx;
+
+#if GINT_RENDER_MONO
+# define JFKEYS_HEIGHT 8
+#elif GINT_RENDER_RGB
+# define JFKEYS_HEIGHT 17
+#endif
+
+jfkeys *jfkeys_create2(
+	bopti_image_t const *img, char const *labels, void *parent)
 {
 	if(jfkeys_type_id < 0) return NULL;
 
 	jfkeys *f = malloc(sizeof *f);
 	jwidget_init(&f->widget, jfkeys_type_id, parent);
-	jfkeys_set(f, img);
-
-	return f;
-}
-
-void jfkeys_set(jfkeys *f, bopti_image_t const *img)
-{
-	f->img = img;
-	f->level = 0;
-	f->widget.update = true;
-}
-#endif /* FX9860G */
-
-#ifdef FXCG50
-jfkeys *jfkeys_create(char const *labels, void *parent)
-{
-	if(jfkeys_type_id < 0) return NULL;
-
-	jfkeys *f = malloc(sizeof *f);
-	jwidget_init(&f->widget, jfkeys_type_id, parent);
-	jfkeys_set(f, labels);
+	jfkeys_set2(f, img, labels);
 	for(int i = 0; i < 6; i++) f->overrides[i] = NULL;
 	f->bg_color = C_BLACK;
 	f->bg_special_color = C_WHITE;
 	f->text_color = C_WHITE;
 	f->text_special_color = C_BLACK;
+
+#if GINT_RENDER_MONO
+	f->font = &j_font_fkeys_fx;
+#else
 	f->font = dfont_default();
+#endif
 	return f;
 }
 
-void jfkeys_set(jfkeys *f, char const *labels)
+void jfkeys_set2(jfkeys *f, bopti_image_t const *img, char const *labels)
 {
+	f->img = img;
 	f->labels = labels;
 	f->level = 0;
 	f->widget.update = true;
@@ -90,7 +84,6 @@ static char const *get_label(char const *level, int key, size_t *len)
 
 	return NULL;
 }
-#endif /* FXCG50 */
 
 //---
 // Polymorphic widget operations
@@ -99,37 +92,27 @@ static char const *get_label(char const *level, int key, size_t *len)
 static void jfkeys_poly_csize(void *f0)
 {
 	jfkeys *f = f0;
-
-	#ifdef FX9860G
-	f->widget.w = 128;
-	f->widget.h = 8;
-	#endif
-
-	#ifdef FXCG50
-	f->widget.w = 396;
-	f->widget.h = 17;
-	#endif
+	f->widget.w = DWIDTH;
+	f->widget.h = JFKEYS_HEIGHT;
 }
 
 static void jfkeys_poly_render(void *f0, int base_x, int y)
 {
 	jfkeys *f = f0;
 
-	#ifdef FX9860G
-	dsubimage(base_x, y, f->img, 0, 9*f->level, f->img->width, 8, DIMAGE_NONE);
-	#endif
+	if(f->img) {
+		dsubimage(base_x, y, f->img, 0, (JFKEYS_HEIGHT+1) * f->level,
+			f->img->width, JFKEYS_HEIGHT, DIMAGE_NONE);
+		return;
+	}
 
-	#ifdef FXCG50
 	font_t const *old_font = dfont(f->font);
 	char const *level = get_level(f->labels, f->level);
 	if(!level) return;
 
 	for(int position = 0; position < 6; position++) {
 		size_t length = 0;
-		char const *text = NULL;
-		#ifdef FXCG50
-		text = f->overrides[position];
-		#endif
+		char const *text = f->overrides[position];
 		if(!text) text = get_label(level, position, &length);
 		if(!text || (*text != '.' && *text != '/' && *text != '@'
 			&& *text != '#')) continue;
@@ -168,7 +151,6 @@ static void jfkeys_poly_render(void *f0, int base_x, int y)
 	}
 
 	dfont(old_font);
-	#endif /* FXCG50 */
 }
 
 int jfkeys_level(jfkeys *f)
@@ -183,41 +165,30 @@ void jfkeys_set_level(jfkeys *f, int level)
 	f->widget.update = 1;
 }
 
-char const *jfkeys_override(GUNUSED jfkeys *keys, GUNUSED int key)
+char const *jfkeys_override(jfkeys *keys, int key)
 {
-	#ifdef FXCG50
 	if(key < 1 || key > 6) return NULL;
 	return keys->overrides[key - 1];
-	#endif
-
-	return NULL;
 }
 
-void jfkeys_set_override(GUNUSED jfkeys *keys, GUNUSED int key,
-	GUNUSED char const *override)
+void jfkeys_set_override(jfkeys *keys, int key, char const *override)
 {
-	#ifdef FXCG50
 	if(key < 1 || key > 6) return;
 	keys->overrides[key - 1] = override;
-	#endif
 }
 
-void jfkeys_set_color(GUNUSED jfkeys *keys, GUNUSED int bg,
-	GUNUSED int bg_special, GUNUSED int text, GUNUSED int text_special)
+void jfkeys_set_color(
+	jfkeys *keys, int bg, int bg_special, int text, int text_special)
 {
-	#ifdef FXCG50
 	keys->bg_color = bg;
 	keys->bg_special_color = bg_special;
 	keys->text_color = text;
 	keys->text_special_color = text_special;
-	#endif
 }
 
-void jfkeys_set_font(GUNUSED jfkeys *keys, GUNUSED font_t const *font)
+void jfkeys_set_font(jfkeys *keys, font_t const *font)
 {
-	#ifdef FXCG50
 	keys->font = font;
-	#endif
 }
 
 /* jfkeys type definition */

@@ -5,7 +5,8 @@
 
 #include <gint/display.h>
 #include <gint/keyboard.h>
-#include <gint/std/stdlib.h>
+#include <gint/config.h>
+#include <stdlib.h>
 
 /* Type identifier for jinput */
 static int jinput_type_id = -1;
@@ -28,11 +29,12 @@ enum {
 
 /* Mode indicators and their size */
 extern bopti_image_t j_img_input_modes;
-#ifdef FX9860G
-#define JINPUT_INDICATOR 9
-#endif
-#ifdef FXCG50
-#define JINPUT_INDICATOR 12
+#if GINT_RENDER_MONO
+# define JINPUT_INDICATOR 9
+# define JINPUT_CURSOR_WIDTH 1
+#elif GINT_RENDER_RGB
+# define JINPUT_INDICATOR 12
+# define JINPUT_CURSOR_WIDTH 2
 #endif
 
 jinput *jinput_create(char const *prompt, size_t length, void *parent)
@@ -218,10 +220,7 @@ static void jinput_poly_render(void *i0, int x, int y)
 		else cursor_w = 0;
 
 		int cursor_x = x + prompt_w + cursor_w;
-		dline(cursor_x, y, cursor_x, y + h - 1, i->color);
-		#ifdef FXCG50
-		dline(cursor_x + 1, y, cursor_x + 1, y + h - 1, i->color);
-		#endif
+		drect(cursor_x, y, cursor_x+JINPUT_CURSOR_WIDTH-1, y + h - 1, i->color);
 	}
 
 	dfont(old_font);

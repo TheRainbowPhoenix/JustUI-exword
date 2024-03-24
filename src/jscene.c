@@ -233,12 +233,14 @@ jevent jscene_run(jscene *s)
 				continue;
 			}
 		}
-		#ifdef FX9860G
+		// TODO: Temporarily disabled to allow build-fxg3a, will put back when
+		// gint's generic video interface is available
+/*		#ifdef FX9860G
 		if(k.type == KEYEV_DOWN && k.key == KEY_OPTN && k.shift && !k.alpha) {
 			t6k11_backlight(-1);
 			continue;
 		}
-		#endif
+		#endif */
 
 		getkey_feature_t feat = getkey_feature_function();
 		if((k.type == KEYEV_DOWN || k.type == KEYEV_HOLD) && feat && feat(k))

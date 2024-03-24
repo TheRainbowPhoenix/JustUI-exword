@@ -9,6 +9,7 @@
 #include <justui/jwidget.h>
 
 #include <gint/display.h>
+#include <gint/config.h>
 
 /* jfkeys: Functions keys indicating functions for the F1..F6 keys
 
@@ -32,8 +33,8 @@
      that should catch attention, or particularly unsafe actions. They are
      round white keys.
 
-   On fx-CG 50, the keys are drawn dynamically using gint's default font, and
-   specified using 6 strings that give the type and name of the keys:
+   The more flexible option to draw the keys is dynamically with text. In that
+   case each key are specified with a strings that combines a type and name:
 
    * "/NAME" for a menu key;
    * ".NAME" for an entry key;
@@ -45,20 +46,22 @@
    instance, "/F1;#F2|/F1" represents a function bar where the F2
    function can be hidden by switching from level 0 to level 1.
 
-   On fx-9860G, there is not enough space to generate keys on-the-fly, so the
-   full specification is just an image. The convention for the image is to be
-   128x8 pixels, with each function key (i) positioned at (x = 21*i + 2) of
-   width 19. Several levels can be stacked up (n levels in an image of height
-   9n-1) and selected independently. */
+   The other option is to draw the keys with an image. This is most useful at
+   small resolutions where hand-drawn keys often look better. On the fx-9860G
+   with its 128x64 resolution, the convention is that the image is 128x8, and
+   key #i is positioned at x = 21i+2 with width 19. The equivalent of "|"-
+   separated levels is allowed by stacking up rows of keys (in which case the
+   image is of height 9n-1 for n rows). */
 typedef struct {
 	jwidget widget;
 	int8_t level;
 
-	#ifdef FX9860G
-	bopti_image_t const *img;
-	#endif
+	/* Image version; if specified this overrides all text parameters */
 
-	#ifdef FXCG50
+	bopti_image_t const *img;
+
+	/* Text version */
+
 	char const *labels;
 	char const *overrides[6];
 
@@ -66,39 +69,29 @@ typedef struct {
 	int text_color, text_special_color;
 
 	font_t const *font;
-	#endif
 
 } jfkeys;
 
-/* jfkeys_create(): Create a set of function keysed
+/* jfkeys_create2(): Create a set of function keys
 
-   The arguments are obviously different on fx-9860G and fx-CG 50. If your
-   application supports both, you might want to specify arguments for both
-   platforms in a single call with jfkeys_create2() which will filter them out
-   for you. Referencing an image unavailable on fx-CG 50 in jfkeys_create2() is
-   safe since the preprocessor will remove that text. */
+   Both the image and text specification are provided; one of them should
+   generally be NULL (if both are non-NULL, the image takes precedence). For
+   historical reasons the name fkeys_create() is a one-argument version with
+   either the text or image depending on the platform. */
+jfkeys *jfkeys_create2(
+   bopti_image_t const *img, char const *labels, void *parent);
 
-#ifdef FX9860G
-jfkeys *jfkeys_create(bopti_image_t const *img, void *parent);
-#define jfkeys_create2(img, labels, parent) jfkeys_create(img, parent)
-#endif
-
-#ifdef FXCG50
-jfkeys *jfkeys_create(char const *labels, void *parent);
-#define jfkeys_create2(img, labels, parent) jfkeys_create(labels, parent)
-#endif
-
-/* jfkeys_set(): Replace functions
+/* jfkeys_set2(): Replace the definition of function keys
    This will also reset the level to 0. */
+void jfkeys_set2(jfkeys *keys, bopti_image_t const *img, char const *labels);
 
-#ifdef FX9860G
-void jfkeys_set(jfkeys *keys, bopti_image_t const *img);
-#define jfkeys_set2(keys, img, labels) jfkeys_set(keys, img)
-#endif
-
-#ifdef FXCG50
-void jfkeys_set(jfkeys *keys, char const *labels);
-#define jfkeys_set2(keys, img, labels) jfkeys_set(keys, labels)
+/* Deprecated platform-specific shortcuts */
+#if GINT_RENDER_MONO
+# define jfkeys_create(img, parent) jfkeys_create2(img, NULL, parent)
+# define jfkeys_set(keys, img) jfkeys_set2(keys, img, NULL)
+#elif GINT_RENDER_RGB
+# define jfkeys_create(labels, parent) jfkeys_create2(NULL, labels, parent)
+# define jfkeys_set(keys, labels) jfkeys_set2(keys, NULL, labels)
 #endif
 
 /* jfkeys_level(): Return the current function key level */
