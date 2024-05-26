@@ -40,12 +40,18 @@ add_library(${NAME} STATIC
 )
 
 target_compile_options(${NAME} PUBLIC
-  -Wall -Wextra -std=c11 -Os)
+  -Wall -Wextra -std=c11 -Os -flto)
 target_include_directories(${NAME} PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
   "${CMAKE_CURRENT_BINARY_DIR}/include")
 target_link_libraries(${NAME}
   Gint::Gint -lm)
+
+# Generate the archive with gcc-ar instead of ar as it will load the LTO plugin
+# which is required to generate a usable archive.
+set(CMAKE_C_ARCHIVE_CREATE "${CMAKE_C_COMPILER_AR} qcs <TARGET> <OBJECTS>")
+# Also the ranlib rule (useless because ar is passed the s flag anyway)
+set(CMAKE_C_ARCHIVE_FINISH "${CMAKE_C_COMPILER_RANLIB} <TARGET>")
 
 install(TARGETS ${NAME}
   DESTINATION "${FXSDK_LIB}")
