@@ -284,6 +284,9 @@ static void jframe_poly_render(void *f0, int x, int y)
     jframe *f = f0;
     jwidget *child = frame_child(f);
 
+    if(!child)
+        return;
+
     int child_w = jwidget_full_width(child);
     int child_h = jwidget_full_height(child);
 
