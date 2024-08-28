@@ -65,7 +65,7 @@ class Record:
 
 JuiValue = Union[None, bool, int, float, str, CXXQualid, list,
                  "juic.eval.PartialRecordSnapshot", BuiltinFunction, Function,
-                 RecordType, Record]
+                 RecordType, RecordCtor, Record]
 
 def juiIsArith(value):
     return type(value) in [bool, int, float]
@@ -113,9 +113,15 @@ def juiValueString(v):
             return "[" + ", ".join(juiValueString(x) for x in v) + "]"
         case BuiltinFunction():
             return str(v)
-        case Function():
-            p = v.params + (["..." + v.variadic] if v.variadic else [])
-            s = "fun(" + ", ".join(p) + ") => " + str(v.body)
+        case Function() as f:
+            p = f.params + (["..." + f.variadic] if f.variadic else [])
+            s = "fun(" + ", ".join(p) + ") => " + str(f.body)
+            s += " (in some closure)"
+            return s
+        case RecordCtor() as rc:
+            f = rc.func
+            p = f.params + (["..." + f.variadic] if f.variadic else [])
+            s = "rec(" + ", ".join(p) + ") => " + str(f.body)
             s += " (in some closure)"
             return s
         case RecordType() as rt:

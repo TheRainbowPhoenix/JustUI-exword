@@ -46,6 +46,10 @@ jwidget {
   // fun test(x, y, ...all) = x + y + sum(all);
 };
 
+rec jlabel2(str) = jwidget { text: str };
+
+jlabel2 {"Hello"};
+
 /*
 fun _(fx, cg) = if(param("FX")) fx else cg;
 fun stack(elem) = elem <{ layout: stack };

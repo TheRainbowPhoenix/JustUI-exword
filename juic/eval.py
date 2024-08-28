@@ -264,6 +264,10 @@ class Context:
                         params = [name for (name, v) in params if not v],
                         variadic = variadic)
 
+    def makeRecordCtor(self, params: list[Tuple[str, bool]], body: Node) \
+        -> RecordCtor:
+        return RecordCtor(func=self.makeFunction(params, body))
+
     #=== Main evaluation functions ===#
 
     # Expression evaluator; this function is pure. It can cause thunks to be
@@ -385,7 +389,7 @@ class Context:
             case Node.T.REC_ATTR, _:
                 raise NotImplementedError
 
-            case Node.T.REC_VALUE, _:
+            case Node.T.REC_VALUE, args:
                 raise NotImplementedError
 
         raise Exception("invalid expr o(x_x)o: " + str(node))
@@ -416,8 +420,9 @@ class Context:
                 self.addDefinition(name, self.makeFunction(params, body))
                 return None
 
-            case Node.T.REC_DECL, _:
-                raise NotImplementedError
+            case Node.T.REC_DECL, [name, params, body]:
+                self.addDefinition(name, self.makeRecordCtor(params, body))
+                return None
 
             case Node.T.SET_STMT, _:
                 raise NotImplementedError
@@ -496,20 +501,9 @@ class Context:
     def evalRecordConstructor(self, ctor: JuiValue, entries: list[Node]) \
             -> JuiValue:
 
-        # Collect indices of fields and arguments separately; keep the order
-        args = []
-        attr = []
-        for i, e in enumerate(entries):
-            if e.ctor == Node.T.REC_ATTR:
-                attr.append(i)
-            elif e.ctor == Node.T.REC_VALUE:
-                args.append(i)
-            else:
-                assert False and "record node has weird children o(x_x)o"
-
         # Base record constructor: starts out with an empty record. All
         # arguments are children. Easy.
-        if type(ctor) == RecordType:
+        if isinstance(ctor, RecordType):
             r = Record(base=ctor, attr=dict(), children=[])
 
             # Create thunks for all entries while providing them with
@@ -520,7 +514,7 @@ class Context:
                 if e.ctor == Node.T.REC_ATTR:
                     name, label, node = e.args
                 elif e.ctor == Node.T.REC_VALUE:
-                    name, label, node = None, None, *e.args
+                    name, label, node = None, None, e.args[0]
 
                 th = Thunk(ast=node, closure=self.currentStateClosure())
                 th.thisReference = prs.copy()
@@ -533,93 +527,68 @@ class Context:
 
             return r
 
-        assert isinstance(ctor, Function)
+        # NOTE: NO WAY TO SPECIFY AN ATTRIBUTE IN A NON-STATIC WAY.
 
-        # TODO: Factor this with function. In fact, this should reduce to a call
+        # Create thunks for all entries that have everything but the "this".
+        entry_thunks = []
+        for e in entries:
+            if e.ctor == Node.T.REC_ATTR:
+                name, label, node = e.args
+            elif e.ctor == Node.T.REC_VALUE:
+                name, label, node = None, None, e.args[0]
+            th = Thunk(ast=node, closure=self.currentStateClosure())
+            entry_thunks.append(th)
+
+        # Collect arguments to the constructor and build a thunk the call.
+        args = [entry_thunks[i]
+                for i, e in enumerate(entries) if e.ctor == Node.T.REC_VALUE]
+
+        # TODO: Merge with an internal version of evalCall()
+        #---
+
+        assert isinstance(ctor, RecordCtor)
+        f = ctor.func
+
         # Check number of arguments
-        req = str(len(ctor.params)) + ("+" if ctor.variadic is not None else "")
-        if len(args) < len(ctor.params):
+        req = str(len(f.params)) + ("+" if f.variadic is not None else "")
+        if len(args) < len(f.params):
             raise JuiRuntimeError(f"not enough args (need {req}, got {len(args)})")
-        if len(args) > len(ctor.params) and ctor.variadic is None:
+        if len(args) > len(f.params) and f.variadic is None:
             raise JuiRuntimeError(f"too many args (need {req}, got {len(args)})")
 
         # TODO: In order to build variadic set I need a LIST node
-        if ctor.variadic is not None:
+        if f.variadic is not None:
             raise NotImplementedError("list node for building varargs o(x_x)o")
 
-        # Otherwise, it's a function so it might use
-        raise NotImplementedError
+        # Run into the function's scope to build the thunk
+        with self.contextSwitchAndPushNewScope(f.closure):
+            for name, th in zip(f.params, args):
+                self.addDefinition(name, th)
+            assert f.body.ctor == Node.T.SCOPE_EXPR
+            call_thunk = Thunk(ast=f.body.args[0],
+                               closure=self.currentStateClosure())
+        #---
 
-        assert type(r) == Function and \
-            "evalRecordConstructor: not a record type nor a function"
+        # Use the call as base for a PRS and assign "this" in all thunks.
+        prs = PartialRecordSnapshot()
+        prs.base = call_thunk
 
-        # Thunks should be created from a closure of the entire environment
-        # -> This environment is always known, _except_ for
-        #    partially-constructed records
-        # So, naturally... patch the PRS for "this" later on?
-        #
-        # ## In a normal function call
-        #
-        # Invariant: context of evaluating the expression that has the call is
-        # complete. Use it for all the arguments. Done.
-        #
-        # ## In a record constructor with no parameters
-        #
-        # All attribute values have the same context when excluding "this",
-        # it's just the context surrounding the record constructor, and
-        # (invariant) it is complete. Use it to create all of the thunks.
-        #
-        # Later, iterate through the thunks in top-down order and patch the
-        # "this" by constructing PRSs.
-        #
-        # Invariant is satisified because each thunk's closure is complete and
-        # thus the  context for evaluating their contents will also be
-        # complete.
-        #
-        # ## In a record constructor with parameters
-        #
-        # Again, the entire context except for "this" is well-defined and
-        # complete. Use it to create thunks for all record entries, inline or
-        # not.
-        #
-        # Prepare a thunk for the call's evaluation, based on the function's
-        # environment, assigning parameter-related thunks (or lists thereof) as
-        # definitions for the function's arguments.
-        #
-        # Use the call's thunk as base for the PRS and sweep top-to-bottom
-        # assigning PRSs in every record-entry thunk.
-        #
-        # Return a literal record with all non-parameter entries as elements.
-        # Erm, remove duplicates.
-        #
-        # NOTE: NO WAY TO SPECIFY AN ATTRIBUTE IN A NON-STATIC WAY.
+        for i, e in enumerate(entries):
+            entry_thunks[i].thisReference = prs.copy()
+            if e.ctor == Node.T.REC_ATTR:
+                name, label, node = e.args
+                prs.fieldThunks[name] = th
 
-        # - Build thunks for all entries, with one layer of "this" data
-        # - Call ctor1, pass it the argument thunks
-        # - Move into ctor1's scope, add new scope with arguments
-        # - Build a thunk for ctor1's body, this is second layer of "this"
-        # /!\ It's not per-field! It's not per-field!
-        # - Go back to toplevel, add second layer of "this" to all thunks
-        # - Return a PartialRecord object that has ctor1's returned thunk as
-        #   base and the other fields as overrides.
-        #
-        # ... Looks too opaque at ctor1's level.
-        # ... But then again for lazy evaluation all we need to know is it's a
-        #     record, and then we evaluated only when we project fields. If the
-        #     same thing happens with <{} there should be no problem.
-        # ... Having exactly two layers is suspicious. What happens when we try
-        #     to get a field?
-        #
-        # 1. Lookup the field in the PartialRecord. If it has it, it's been
-        #    added by the latest constructor, and we know which it is. Evaluate
-        #    the thunk inside.
-        # 2. Otherwise, evaluate the base thunk. In the "f <| rec { ... }" it's
-        #    a record update. This will yield another PartialRecord. Use it.
-        # 3. This should work, but we need a PartialRecord.
-        #
-        # When do we convert back to a full Record?
-        # How about that's what Record does, and it just has accessors?
-        raise NotImplementedError
+        baseRecord = self.evalThunk(call_thunk)
+        if not isinstance(baseRecord, Record):
+            raise Exception("record ctor did not return a record")
+
+        for i, e in enumerate(entries):
+            if e.ctor == Node.T.REC_ATTR:
+                name, label, node = e.args
+                baseRecord.attr[name] = entry_thunks[i]
+
+        return baseRecord
 
     def force(self, v: JuiValue | Thunk) -> JuiValue:
         match v:
