@@ -35,11 +35,12 @@ class Function:
 
 @dataclass
 class RecordType:
-    # TODO: Record prototypes?
+    # Record name
+    name: str
+    # Base type for inheritance/subconstructor logic
+    base: Union[None, "RecordType"]
 
-    @staticmethod
-    def makePlainRecordType():
-        return RecordType()
+    # TODO: Record prototypes?
 
 # @dataclass
 # class RecordCtor:
@@ -99,3 +100,88 @@ def juiIsConstructible(value):
 
 def juiIsRecordUpdatable(value):
     return type(value) == Record
+
+# Generic functions on values
+
+# String representation of a value
+def juiValueString(v):
+    match v:
+        case None:
+            return "null"
+        case bool():
+            return str(v).lower()
+        case int() | float():
+            return str(v)
+        case str():
+            return repr(v)
+        case CXXQualid():
+            return "&" + v.qualid
+        case list():
+            return "[" + ", ".join(juiValueString(x) for x in v) + "]"
+        case BuiltinFunction():
+            return str(v)
+        case Function():
+            p = v.params + (["..." + v.variadic] if v.variadic else [])
+            s = "fun(" + ", ".join(p) + ") => " + str(v.body)
+            s += " (in some closure)"
+            return s
+        case RecordType() as rt:
+            return str(rt)
+        case Record() as r:
+            s = r.base.name + " {"
+            s += "; ".join(x + ": " + juiValueString(y) for x, y in r.attr.items())
+            s += "; ".join(juiValueString(x) for x in r.children)
+            return s + "}"
+            raise NotImplementedError
+        case Thunk() as th:
+            return str(th)
+        case PartialRecordSnapshot() as prs:
+            return str(prs)
+        case _:
+            raise NotImplementedError
+
+# Check whether two *forced* values are equal
+def juiValuesEqual(v1, v2):
+    match v1, v2:
+        case None, None:
+            return True
+        case bool(), bool():
+            return v1 == v2
+        case int(), int():
+            return v1 == v2
+        case float(), float():
+            return v1 == v2
+        case str(), str():
+            return v1 == v2
+        case CXXQualid(), CXXQualid():
+            return v1.qualid == v2.qualid
+        case list() as l1, list() as l2:
+            return len(l1) == len(l2) and \
+                all(juiValuesEqual(v1, v2) for v1, v2 in zip(l1, l2))
+        case BuiltinFunction(), BuiltinFunction():
+            return id(v1) == id(v2)
+        case Function(), Function():
+            raise Exception("cannot compare functions")
+        case RecordType(), RecordType():
+            return id(v1) == id(v2)
+        case Record() as r1, Record() as r2:
+            if not juiValuesEqual(r1.base, r2.base):
+                return False
+            if r1.attr.keys() != r2.attr.keys():
+                return False
+            if any(not juiValuesEqual(r1.attr[k], r2.attr[k]) for k in r1.attr):
+                return False
+            if len(r1.children) != len(r2.children):
+                return False
+            if any(not juiValuesEqual(v1, v2)
+                   for v1, v2 in zip(r1.children, r2.children)):
+                return False
+            return True
+        case Thunk() as th1, Thunk() as th2:
+            assert th1.evaluated and not th1.invalid
+            assert th2.evaluated and not th2.invalid
+            return juiValuesEqual(th1.result, th2.result)
+        case PartialRecordSnapshot(), PartialRecordSnapshot():
+            raise Exception("cannot compare PRSs")
+        case _, _:
+            raise Exception(f"invalid types for comparison: {type(v1)}, {type(v2)}")

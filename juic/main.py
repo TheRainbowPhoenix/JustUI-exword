@@ -11,8 +11,9 @@ usage: juic [OPTIONS] INPUT
 JustUI high-level description compiler.
 
 Options:
-  --debug=lexer      Dump the lexer output and stop.
-         =parser     Dump the parser output and stop.
+  --debug=lexer      Dump the lexer output and stop
+         =parser     Dump the parser output and stop
+  --unit-tests       Check unit tests specified by "//^" comments
 """.strip()
 
 def usage(exitcode=None):
@@ -24,7 +25,8 @@ def usage(exitcode=None):
 def main(argv):
     # Read command-line arguments
     try:
-        opts, args = getopt.gnu_getopt(argv[1:], "", ["help", "debug="])
+        opts, args = getopt.gnu_getopt(argv[1:], "",
+            ["help", "debug=", "unit-tests"])
         opts = dict(opts)
 
         if len(argv) == 1 or "-h" in opts or "--help" in opts:
@@ -45,7 +47,8 @@ def main(argv):
         source = fp.read()
 
     try:
-        lexer = juic.parser.JuiLexer(source, args[0])
+        lexer = juic.parser.JuiLexer(source, args[0],
+            keepUnitTests="--unit-tests" in opts)
         if opts.get("--debug") == "lexer":
             lexer.dump()
             return 0
@@ -64,6 +67,11 @@ def main(argv):
         return 1
 
     ctx = juic.eval.Context(juic.builtins.builtinClosure)
+
+    if "--unit-tests" in opts:
+        for e in ast.args:
+            ctx.execStmt(e)
+        return 0
 
     for e in ast.args:
         e.dump()

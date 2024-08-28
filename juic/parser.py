@@ -76,12 +76,18 @@ class NaiveRegexLexer:
         if not len(self.input):
             return None
 
+        highestPriority = 0
         longestMatch = None
         longestMatchIndex = -1
 
-        for i, (regex, _, _) in enumerate(self.TOKEN_REGEX):
+        for i, (regex, _, _, *rest) in enumerate(self.TOKEN_REGEX):
+            priority = rest[0] if len(rest) else 0
+
             if (m := re.match(regex, self.input)):
-                if longestMatch is None or len(m[0]) > len(longestMatch[0]):
+                score = (priority, len(m[0]))
+                if longestMatch is None or \
+                    score > (highestPriority, len(longestMatch[0])):
+                    highestPriority = priority
                     longestMatch = m
                     longestMatchIndex = i
 
@@ -90,7 +96,7 @@ class NaiveRegexLexer:
             self.raiseError(f"unknown syntax '{nextWord}'")
 
         # Build the token
-        _, type_info, value_info = self.TOKEN_REGEX[longestMatchIndex]
+        _, type_info, value_info, *rest = self.TOKEN_REGEX[longestMatchIndex]
         m = longestMatch
 
         typ = type_info(m) if callable(type_info) else type_info
@@ -212,15 +218,17 @@ def unescape(s: str) -> str:
 
 class JuiLexer(NaiveRegexLexer):
     T = enum.Enum("T",
-        ["WS", "KW", "COMMENT",
-         "INT", "FLOAT", "STRING",
+        ["WS", "KW", "COMMENT", "UNIT_TEST_MARKER",
+         "TEXTLIT", "INT", "FLOAT", "STRING",
          "IDENT", "ATTR", "VAR", "LABEL", "FIELD", "CXXIDENT"])
+
+    RE_UTMARKER = r'//\^'
 
     RE_COMMENT  = r'(#|//)[^\n]*|/\*([^/]|/[^*])+\*/'
     RE_INT      = r'0|[1-9][0-9]*|0b[0-1]+|0o[0-7]+|0[xX][0-9a-fA-F]+'
     # RE_FLOAT    = r'([0-9]*\.[0-9]+|[0-9]+\.[0-9]*|[0-9]+)([eE][+-]?{INT})?f?'
 
-    RE_KW       = r'\b(else|fun|if|let|rec|set|this)\b'
+    RE_KW       = r'\b(else|fun|if|let|rec|set|this|null|true|false)\b'
     RE_IDENT    = r'[\w_][\w0-9_]*'
     RE_ATTR     = r'({})\s*(?:@({}))?\s*:'.format(RE_IDENT, RE_IDENT)
     RE_VAR      = r'\$(\.)?' + RE_IDENT
@@ -253,12 +261,20 @@ class JuiLexer(NaiveRegexLexer):
     ]
     TOKEN_DISCARD = lambda t: t.type in [JuiLexer.T.WS, JuiLexer.T.COMMENT]
 
+    def __init__(self, input, inputFilename, *, keepUnitTests):
+        if keepUnitTests:
+            unit_rule = (self.RE_UTMARKER, JuiLexer.T.UNIT_TEST_MARKER, None, 1)
+            self.TOKEN_REGEX.insert(0, unit_rule)
+
+        super().__init__(input, inputFilename)
+
 @dataclass
 class Node:
     T = enum.Enum("T", [
         "LIT", "IDENT", "OP", "THIS", "PROJ", "CALL", "IF", "SCOPE",
         "RECORD", "REC_ATTR", "REC_VALUE",
-        "LET_DECL", "FUN_DECL", "REC_DECL", "SET_STMT"])
+        "LET_DECL", "FUN_DECL", "REC_DECL", "SET_STMT",
+        "UNIT_TEST"])
     ctor: T
     args: list[typing.Any]
 
@@ -480,7 +496,20 @@ class JuiParser(LL1Parser):
     def scope(self):
         isNone = lambda t: t is None
         entries = self.separatedList(self.scope_stmt, sep=";", term=isNone)
-        return Node(Node.T.SCOPE, entries)
+
+        # Rearrange unit tests around their predecessors
+        entries2 = []
+        i = 0
+        while i < len(entries):
+            if i < len(entries) - 1 and entries[i+1].ctor == Node.T.UNIT_TEST:
+                entries[i+1].args[0] = entries[i]
+                entries2.append(entries[i+1])
+                i += 2
+            else:
+                entries2.append(entries[i])
+                i += 1
+
+        return Node(Node.T.SCOPE, entries2)
 
     def scope_stmt(self):
         match self.la.type, self.la.value:
@@ -490,5 +519,8 @@ class JuiParser(LL1Parser):
                 return self.fun_rec_decl()
             case JuiLexer.T.KW, "set":
                 return self.set_stmt()
+            case JuiLexer.T.UNIT_TEST_MARKER, _:
+                self.expect(JuiLexer.T.UNIT_TEST_MARKER)
+                return Node(Node.T.UNIT_TEST, [None, self.expr()])
             case _:
                 return self.expr()

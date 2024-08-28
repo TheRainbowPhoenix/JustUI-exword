@@ -1,0 +1,29 @@
+null;
+//^ null;
+
+1+2;
+//^ 3;
+
+let zero = 0;
+zero + 2 * 20 - 8 / 4;
+//^ 38;
+
+"hello" + "," + "world";
+//^ "hello,world";
+
+if(2 < 4) 8;
+//^ 8;
+
+if(2 > 4) 8;
+//^ null;
+
+if(2 > 4) 8 else 14;
+//^ 14;
+
+let z = 4;
+(z + 10) * 3;
+//^ 42;
+
+let helloworld = "Hello, World!";
+len("xyz" + helloworld) + 1;
+//^ 17;

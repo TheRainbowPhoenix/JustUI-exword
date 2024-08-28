@@ -104,6 +104,21 @@ class Thunk:
     # Whether the thunk is currently under evaluation
     _running: bool = False
 
+    def __str__(self):
+        s = "Thunk("
+        if th._running:
+            s += "running, "
+        if th.evaluated:
+            s += "evaluated"
+            if th.invalid:
+                s += ", invalid"
+            else:
+                s += " = " + juiValueString(th.result)
+        else:
+            s += "unevaluated"
+        s += "){ " + str(th.ast) + " }"
+        return s
+
 # Object representing the interpretation of a partially-built record. In a
 # record construction or update operation, fields of `this` refer to the latest
 # definition before the point of use, if there is one, or the definition in the
@@ -121,57 +136,11 @@ class PartialRecordSnapshot:
     # Base object for fields not captured in `fieldThunks`
     base: None | Thunk = None
 
+    def __str__(self):
+        return "<A PRS AAAAAAH>" # TODO
+
     def copy(self):
         return PartialRecordSnapshot(self.fieldThunks.copy(), self.base)
-
-# TODO: Make this a general value printing function
-def juiValueString(v):
-    match v:
-        case None:
-            return "null"
-        case bool():
-            return str(v).lower()
-        case int() | float():
-            return str(v)
-        case str():
-            return repr(v)
-        case CXXQualid():
-            return "&" + v.qualid
-        case list():
-            return "[" + ", ".join(juiValueString(x) for x in v) + "]"
-        case BuiltinFunction():
-            return str(v)
-        case Function():
-            p = v.params + (["..." + v.variadic] if v.variadic else [])
-            s = "fun(" + ", ".join(p) + ") => " + str(v.body)
-            s += " (in some closure)"
-            return s
-        case RecordType():
-            return "<RecordType>"
-        case Record() as r:
-            s = juiValueString(r.base) + " " + "{"
-            s += "; ".join(x + ": " + juiValueString(y) for x, y in r.attr.items())
-            s += "; ".join(juiValueString(x) for x in r.children)
-            return s + "}"
-            raise NotImplementedError
-        case Thunk() as th:
-            s = "Thunk("
-            if th._running:
-                s += "running, "
-            if th.evaluated:
-                s += "evaluated"
-                if th.invalid:
-                    s += ", invalid"
-                else:
-                    s += " = " + juiValueString(th.result)
-            else:
-                s += "unevaluated"
-            s += "){ " + str(th.ast) + " }"
-            return s
-        case PartialRecordSnapshot():
-            return "<A PRS AAAAAAH>"
-        case _:
-            raise NotImplementedError
 
 class JuiTypeError(Exception):
     pass
@@ -420,6 +389,17 @@ class Context:
 
             case Node.T.SET_STMT, _:
                 raise NotImplementedError
+
+            case Node.T.UNIT_TEST, [subject, expected]:
+                vs = self.evalExpr(subject)
+                ve = self.evalExpr(expected)
+                vs = self.force(vs)
+                ve = self.force(ve)
+                if not juiValuesEqual(vs, ve):
+                    print("unit test failed:")
+                    print("  " + str(vs))
+                    print("vs.")
+                    print("  " + str(ve))
 
             case _, _:
                 return self.evalExpr(node)

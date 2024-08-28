@@ -156,6 +156,8 @@ BIG TODO:
 - Don't have a scope and ability to let- or fun-declare inside function body!!
 - `rec x() = y {}; x {}` is it of record type `x` or `y`? How to say that `x`
   is based on `y`?
+  -> it's of type y, which is derived from x and may or may not have custom
+     codegen that overrides that of x
 
 IMPLEMENTATION TODO:
 - List syntax
@@ -176,17 +178,6 @@ The syntax for assigning at labels is a bit dodgy at the moment. It should be
 - Need to have global parameters to control fx/cg
   -> function-based interface param("FX")
 - "Control-flow": for(each) loops, what else needed for basic ops?
-
-Limitation of lazy record construction: if you use a function in the middle of
-a record construction, the record update `<{ }` will force the evaluation of
-fields even though it would be possible not to force that.
-
-```
-fun f(e) = e <{ width: e.width + 10 };
-rec r1(x) = f <| base { width: x };
-rec r2(x) = r1 { height: this.width; x };
-r2 { 10; }
-```
 
 Capturing "this" in a local variable to get a snapshot is required, otherwise
 we can't refer to parents.
