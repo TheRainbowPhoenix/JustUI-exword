@@ -31,18 +31,22 @@ record { attr: 2 + 3; };
 
 record { x: 1; y: 2; z: subrecord { u: "42"; }; };
 
-/*
-record {
+fun stack(x) = x;
+fun stretch(x) = x;
+
+jwidget {
   fullscreen: true;
-  @title jlabel { title; };
+  @title jlabel { "title"; };
   @stack jwidget {} | stack | stretch;
 
-  let x = 4;
-  jfkeys { x };
+  // let x = 4;
+  // jfkeys { x };
+  jfkeys { 4 };
 
-  fun test(x, y, ...all) = x + y + sum(all);
+  // fun test(x, y, ...all) = x + y + sum(all);
 };
 
+/*
 fun _(fx, cg) = if(param("FX")) fx else cg;
 fun stack(elem) = elem <{ layout: stack };
 fun stretch(elem) = elem <{ stretch_x: 1; stretch_y: 1; strech_beyond_limits: false };

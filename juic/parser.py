@@ -279,7 +279,7 @@ class Node:
         "LIT", "IDENT", "OP", "THIS", "PROJ", "CALL", "IF", "SCOPE",
         "RECORD", "REC_ATTR", "REC_VALUE",
         "LET_DECL", "FUN_DECL", "REC_DECL", "SET_STMT",
-        "UNIT_TEST"])
+        "SCOPE_EXPR", "UNIT_TEST"])
     ctor: T
     args: list[Any]
 
@@ -360,7 +360,7 @@ class JuiParser(LL1Parser):
             case T.KW if t.value == "null":
                 node = Node(Node.T.LIT, [None])
             case T.KW if t.value in ["true", "false"]:
-                node = Node(Node.T.LIT, t.value == "true")
+                node = Node(Node.T.LIT, [t.value == "true"])
             case "(":
                 node = self.expr()
                 self.expect(")")
@@ -373,7 +373,7 @@ class JuiParser(LL1Parser):
     #         | expr0 "<{" record_entry,* "}"  (record update)
     #         | expr0 "(" expr,* ")"           (function call)
     #         | expr0 "." ident                (projection, same prec as call)
-    @LL1Parser.binaryOpsRight(mkOpNode, ["|"])
+    @LL1Parser.binaryOpsLeft(mkOpNode, ["|"])
     @LL1Parser.binaryOpsLeft(mkOpNode, ["<|"])
     @LL1Parser.binaryOpsLeft(mkOpNode, ["||"])
     @LL1Parser.binaryOpsLeft(mkOpNode, ["&&"])
@@ -528,4 +528,4 @@ class JuiParser(LL1Parser):
                 self.expect(JuiLexer.T.UNIT_TEST_MARKER)
                 return Node(Node.T.UNIT_TEST, [None, self.expr()])
             case _:
-                return self.expr()
+                return Node(Node.T.SCOPE_EXPR, [self.expr()])

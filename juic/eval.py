@@ -258,8 +258,9 @@ class Context:
         variadic = params[variadics[0]][0] if variadics else None
 
         # Build function object
+        # TODO: Make a full scope not just an expr
         return Function(closure = self.currentStateClosure(),
-                        body = body,
+                        body = Node(Node.T.SCOPE_EXPR, [body]),
                         params = [name for (name, v) in params if not v],
                         variadic = variadic)
 
@@ -394,7 +395,7 @@ class Context:
             case Record() as r:
                 if field not in r.attr:
                     raise Exception(f"access to undefined field {field}")
-                return self.evalThunk(r.attr[field])
+                return self.evalValueOrThunk(r.attr[field])
             case PartialRecordSnapshot() as prs:
                 if field in prs.fieldThunks:
                     return self.evalThunk(prs.fieldThunks[field])
@@ -433,7 +434,10 @@ class Context:
                     print("  " + juiValueString(ve))
                 return None
 
-        return self.evalExpr(node)
+            case Node.T.SCOPE_EXPR, [e]:
+                return self.evalExpr(e)
+
+        raise Exception(f"execStmt: unrecognized node {node.ctor.name}")
 
     # TODO: Context.eval*: continue failed computations to find other errors?
     def evalThunk(self, th: Thunk) -> JuiValue:
@@ -456,6 +460,9 @@ class Context:
         th.evaluated = True
         th.result = result
         return result
+
+    def evalValueOrThunk(self, v: JuiValue | Thunk) -> JuiValue:
+        return self.evalThunk(v) if isinstance(v, Thunk) else v
 
     def evalCall(self, f: JuiValue, args: list[Node]) -> JuiValue:
         # Built-in functions: just evaluate arguments and go
@@ -483,6 +490,7 @@ class Context:
                 self.addDefinition(name, th)
             # self.currentScope.dump()
             # self.currentClosure.dump()
+            assert f.body.ctor == Node.T.SCOPE_EXPR
             return self.execStmt(f.body)
 
     def evalRecordConstructor(self, ctor: JuiValue, entries: list[Node]) \
@@ -504,20 +512,24 @@ class Context:
         if type(ctor) == RecordType:
             r = Record(base=ctor, attr=dict(), children=[])
 
-            if len(args) > 0:
-                raise JuiRuntimeError(f"arguments given to type rec ctor")
-
             # Create thunks for all entries while providing them with
             # progressively more complete PRS of r.
             prs = PartialRecordSnapshot()
 
-            for i in attr:
-                name, label, node = entries[i].args
+            for i, e in enumerate(entries):
+                if e.ctor == Node.T.REC_ATTR:
+                    name, label, node = e.args
+                elif e.ctor == Node.T.REC_VALUE:
+                    name, label, node = None, None, *e.args
+
                 th = Thunk(ast=node, closure=self.currentStateClosure())
                 th.thisReference = prs.copy()
 
-                r.attr[name] = th
-                prs.fieldThunks[name] = th
+                if name is not None:
+                    r.attr[name] = th
+                    prs.fieldThunks[name] = th
+                else:
+                    r.children.append(th)
 
             return r
 
@@ -613,7 +625,9 @@ class Context:
         match v:
             case Record() as r:
                 for a in r.attr:
-                    self.force(r.attr[a])
+                    r.attr[a] = self.force(r.attr[a])
+                for i, e in enumerate(r.children):
+                    r.children[i] = self.force(e)
                 return r
             case Thunk() as th:
                 self.evalThunk(th)

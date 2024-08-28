@@ -74,10 +74,10 @@ def main(argv):
         return 0
 
     for node in ast.args:
-        node.dump()
         v = ctx.execStmt(node)
-        v = ctx.force(v)
-        print(">>>>>>>", juic.eval.juiValueString(v))
+        if node.ctor == juic.parser.Node.T.SCOPE_EXPR:
+            v = ctx.force(v)
+            print(">>>>>>>", juic.eval.juiValueString(v))
 
     ctx.currentScope.dump()
     ctx.currentClosure.dump()

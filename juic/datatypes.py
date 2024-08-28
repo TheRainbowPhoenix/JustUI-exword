@@ -46,29 +46,18 @@ class RecordType:
 
     # TODO: Record prototypes?
 
-# @dataclass
-# class RecordCtor:
-#     # Context in which the record body is evaluated
-#     closure: "juic.eval.Closure"
-#     # List of entries to produce, of type `REC_ATTR` or `REC_VALUE`
-#     entries: list["juic.parser.Node"]
-#     # Parameter names, must all be unique. May be empty
-#     params: list[str] = field(default_factory=[])
-#     # Name of variadic argument if one; must also be unique
-#     variadic: str | None = None
-
-#     @staticmethod
-#     def makePlainRecordCtor():
-#         return RecordCtor(closure=None, entries=[], params=[], variadic=None)
+@dataclass
+class RecordCtor:
+    func: Function
 
 @dataclass
 class Record:
     # A record type if it's pure, or a thunk with the base object otherwise.
     base: Union[RecordType, "juic.eval.Thunk"]
     # Standard key-value attribute pairs
-    attr: dict[str, "juic.eval.Thunk"]
+    attr: dict[str, Union["JuiValue", "juic.eval.Thunk"]]
     # Children elements
-    children: list["juic.eval.Thunk"]
+    children: list[Union["JuiValue", "juic.eval.Thunk"]]
     # TODO: Keep track of variables that are not fields, i.e. "methods"?
     # scope: dict[str, "JuiValue"]
     # TODO: Labels
@@ -100,7 +89,7 @@ def juiIsProjectable(value):
     return type(value) in [Record, juic.eval.PartialRecordSnapshot]
 
 def juiIsConstructible(value):
-    return type(value) in [RecordType, Function]
+    return type(value) in [RecordType, RecordCtor]
 
 def juiIsRecordUpdatable(value):
     return type(value) == Record
@@ -134,6 +123,8 @@ def juiValueString(v):
         case Record() as r:
             s = r.base.name + " {"
             s += "; ".join(x + ": " + juiValueString(y) for x, y in r.attr.items())
+            if len(r.attr) and len(r.children):
+                s += "; "
             s += "; ".join(juiValueString(x) for x in r.children)
             return s + "}"
             raise NotImplementedError
