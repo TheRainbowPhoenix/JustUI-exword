@@ -9,6 +9,7 @@
 #include <gint/std/stdlib.h>
 #include <gint/gint.h>
 #include <gint/drivers/t6k11.h>
+#include <gint/cpu.h>
 
 /* Type identifier for jscene */
 static int jscene_type_id = -1;
@@ -89,25 +90,34 @@ void jscene_render(jscene *scene)
 
 jevent jscene_read_event(jscene *s)
 {
-	if(s->queue_first == s->queue_next)
+	cpu_atomic_start();
+
+	if(s->queue_first == s->queue_next) {
+		cpu_atomic_end();
 		return (jevent){ .source = NULL, .type = JSCENE_NONE };
+	}
 
 	jevent e = s->queue[s->queue_first];
 	s->queue_first = (s->queue_first + 1) % JSCENE_QUEUE_SIZE;
+	cpu_atomic_end();
 	return e;
 }
 
 void jscene_queue_event(jscene *s, jevent e)
 {
+	cpu_atomic_start();
+
 	/* Prevent filling and overflowing the queue */
 	int next = (s->queue_next + 1) % JSCENE_QUEUE_SIZE;
 	if(next == s->queue_first) {
 		s->lost_events++;
-		return;
+	}
+	else {
+		s->queue[s->queue_next] = e;
+		s->queue_next = next;
 	}
 
-	s->queue[s->queue_next] = e;
-	s->queue_next = next;
+	cpu_atomic_end();
 }
 
 //---
