@@ -33,7 +33,7 @@ class Function:
     # Expression node to evaluate when calling the function
     body: "juic.parser.Node"
     # Parameter names, must all be unique. May be empty
-    params: list[str] = field(default_factory=[])
+    params: list[str] = field(default_factory=list)
     # Name of variadic argument if one; must also be unique
     variadic: str | None = None
 

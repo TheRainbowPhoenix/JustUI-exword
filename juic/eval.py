@@ -253,7 +253,7 @@ class Context:
             raise JuiStaticError(f"multiple variadic arguments: {names}")
 
         if variadics and variadics != [len(params) - 1]:
-            name = params[variadic][0]
+            name = params[variadics[0]][0]
             raise JuiStaticError(f"variadic argument {name} not at the end")
         variadic = params[variadics[0]][0] if variadics else None
 
@@ -297,7 +297,10 @@ class Context:
                     case "+": return x + y
                     case "-": return x - y
                     case "*": return x * y
-                    case "/": return x / y if type(x) == float else x // y
+                    case "/":
+                        match x, y:
+                            case float(), float(): return (x / y)
+                            case _, _: return  (x // y)
                     case "%": return x % y
 
             case Node.T.OP, [("!" | "+" | "-") as op, X]:
@@ -384,22 +387,21 @@ class Context:
             case Node.T.REC_VALUE, _:
                 raise NotImplementedError
 
-            case _, _:
-                raise Exception("invalid expr o(x_x)o: " + str(node))
+        raise Exception("invalid expr o(x_x)o: " + str(node))
 
     def project(self, v: JuiValue, field: str) -> JuiValue:
         match v:
             case Record() as r:
                 if field not in r.attr:
                     raise Exception(f"access to undefined field {field}")
-                return r.attr[field]
+                return self.evalThunk(r.attr[field])
             case PartialRecordSnapshot() as prs:
                 if field in prs.fieldThunks:
-                    return prs.fieldThunks[field]
+                    return self.evalThunk(prs.fieldThunks[field])
                 elif prs.base is None:
                     raise Exception(f"access to undefined field {field} of 'this'")
                 else:
-                    return self.project(prs.base, v)
+                    return self.project(self.evalThunk(prs.base), field)
             case _:
                 raise NotImplementedError # unreachable
 
@@ -407,9 +409,11 @@ class Context:
         match node.ctor, node.args:
             case Node.T.LET_DECL, [name, X]:
                 self.addDefinition(name, self.evalExpr(X))
+                return None
 
             case Node.T.FUN_DECL, [name, params, body]:
                 self.addDefinition(name, self.makeFunction(params, body))
+                return None
 
             case Node.T.REC_DECL, _:
                 raise NotImplementedError
@@ -427,9 +431,9 @@ class Context:
                     print("  " + juiValueString(vs))
                     print("vs.")
                     print("  " + juiValueString(ve))
+                return None
 
-            case _, _:
-                return self.evalExpr(node)
+        return self.evalExpr(node)
 
     # TODO: Context.eval*: continue failed computations to find other errors?
     def evalThunk(self, th: Thunk) -> JuiValue:
@@ -498,7 +502,7 @@ class Context:
         # Base record constructor: starts out with an empty record. All
         # arguments are children. Easy.
         if type(ctor) == RecordType:
-            r = Record(base=ctor, attr=dict(), children=dict())
+            r = Record(base=ctor, attr=dict(), children=[])
 
             if len(args) > 0:
                 raise JuiRuntimeError(f"arguments given to type rec ctor")
@@ -516,6 +520,8 @@ class Context:
                 prs.fieldThunks[name] = th
 
             return r
+
+        assert isinstance(ctor, Function)
 
         # TODO: Factor this with function. In fact, this should reduce to a call
         # Check number of arguments
@@ -603,16 +609,16 @@ class Context:
         # How about that's what Record does, and it just has accessors?
         raise NotImplementedError
 
-    def force(self, v: JuiValue) -> JuiValue:
+    def force(self, v: JuiValue | Thunk) -> JuiValue:
         match v:
             case Record() as r:
                 for a in r.attr:
-                    r.attr[a] = self.force(r.attr[a])
+                    self.force(r.attr[a])
                 return r
             case Thunk() as th:
                 self.evalThunk(th)
                 if th.evaluated:
                     return self.force(th.result)
-                return th
+                return th.result
             case _:
                 return v

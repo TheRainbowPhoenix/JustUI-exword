@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import typing
+from typing import Any, Tuple
 import enum
 import sys
 import re
@@ -23,8 +23,8 @@ class SyntaxError(Exception):
 
 @dataclass
 class Token:
-    type: typing.Any
-    value: typing.Any
+    type: Any
+    value: Any
     loc: Loc
 
     def __str__(self):
@@ -45,7 +45,8 @@ class NaiveRegexLexer:
     # Override with list of (regex, token type, token value). Both the token
     # type and value can be functions, in which case they'll be called with the
     # match object as parameter.
-    TOKEN_REGEX = []
+    Rule = Tuple[str, Any, Any] | Tuple[str, Any, Any, int]
+    TOKEN_REGEX: list[Rule] = []
     # Override with token predicate that matches token to be discarded and not
     # sent to the parser (typically, whitespace and comments).
     TOKEN_DISCARD = lambda _: False
@@ -175,6 +176,7 @@ class LL1Parser:
 
     # Rule combinators implementing unary and binary operators with precedence
 
+    @staticmethod
     def binaryOpsLeft(ctor, ops):
         def decorate(f):
             def symbol(self):
@@ -185,6 +187,7 @@ class LL1Parser:
             return symbol
         return decorate
 
+    @staticmethod
     def binaryOps(ctor, ops, *, rassoc=False):
         def decorate(f):
             def symbol(self):
@@ -197,9 +200,11 @@ class LL1Parser:
             return symbol
         return decorate
 
+    @staticmethod
     def binaryOpsRight(ctor, ops):
         return LL1Parser.binaryOps(ctor, ops, rassoc=True)
 
+    @staticmethod
     def unaryOps(ctor, ops, assoc=True):
         def decorate(f):
             def symbol(self):
@@ -276,7 +281,7 @@ class Node:
         "LET_DECL", "FUN_DECL", "REC_DECL", "SET_STMT",
         "UNIT_TEST"])
     ctor: T
-    args: list[typing.Any]
+    args: list[Any]
 
     def dump(self, indent=0):
         print("  " * indent + self.ctor.name, end=" ")
