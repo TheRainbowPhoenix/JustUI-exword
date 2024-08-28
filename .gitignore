@@ -7,3 +7,5 @@ giteapc-config-*.make
 
 # Developer's files
 *.sublime-*
+
+__pycache__

@@ -1,0 +1,101 @@
+1+2;
+/* comment */
+3;
+let zero = 0;
+zero + 2 * 20
+/* other
+comment */
+- 8
+/ 4;
+("hello" + "," + "world");
+if(2 < 4) 8;
+if(2 > 4) 8;
+if(2 > 4) 8 else "ok";
+let z = 4;
+(z + 10) * 3;
+let helloworld = "Hello, World!";
+len("xyz" + helloworld) + 1;
+print(12);
+print(42, "42", 73, "73");
+
+fun myprint3(x, y, z) = print(x, y, z);
+myprint3(1, 2, 3);
+
+let u = 2;
+fun test(x, t, gr) = 42 * x + z + 7;
+let v = 9;
+test(2, 3, u);
+
+record {};
+record { attr: 2 + 3; };
+
+record { x: 1; y: 2; z: subrecord { u: "42"; }; };
+
+/*
+record {
+  fullscreen: true;
+  @title jlabel { title; };
+  @stack jwidget {} | stack | stretch;
+
+  let x = 4;
+  jfkeys { x };
+
+  fun test(x, y, ...all) = x + y + sum(all);
+};
+
+fun _(fx, cg) = if(param("FX")) fx else cg;
+fun stack(elem) = elem <{ layout: stack };
+fun stretch(elem) = elem <{ stretch_x: 1; stretch_y: 1; strech_beyond_limits: false };
+fun myvbox(elem) = elem <{ layout: vbox { spacing: 1 } };
+
+rec gscreen(name, keys, ...tabs) = myvbox <| jscene {
+  fullscreen: true;
+  @title if(name) jlabel { name };
+  @stack jwidget { ...map(stretch, tabs) } | stack | stretch;
+  jfkeys { keys };
+};
+
+gscreen {
+  @name name: "Test";
+  @fs jfileselect {};
+  @shell peshell {};
+};
+
+set jlabel { font: &font_rogue };
+
+jlabel {
+  width: 80;
+  margin: this.width - 2 * 20;
+};
+let hello_world_jlabel = jlabel { "Hello, World!" };
+# implicit hole
+hello_world_jlabel { width: dsize(this.text) };
+*/
+
+/*
+fun f(x) = x + 2;
+label { text: "hello"; height: 4; };
+
+fun my_widget(children) =
+  widget {
+    height: len(children) * 20;
+    ...children;
+  };
+// closure for my_widget function
+
+my_widget {
+  x: this.height; // 4
+  height: 8;
+// closure for the value of y
+// "this" is my_widget:14
+  y: this.height; // 8
+
+// closure for "children" parameter
+// "this" is my_widget:18
+  $children:
+    [label { "hello my height is " + str(this.height) };
+     button { height: this.x } ];
+
+  bg: none;
+};
+*/

@@ -1,0 +1,238 @@
+## Introduction
+
+JustUI includes a UI specification language which can be used to specify user interfaces in a declarative/functional manner, and generates C code for building the user interface and basic interactions. It doesn't remove the need to write custom C code for most of the dynamic aspects of the interface, but it automates its construction and sometimes a bit more.
+
+The language is a purely functional, dynamically-typed language with call-by-need evaluation. Its main feature is _record types_, a structure data type which comes with convenient construction tools and supports flexible kinds of (non-recursive) self-references.
+
+---
+
+## Types of data
+
+- The null constant (`null`) and booleans (`true`, `false`);
+- Primitive types: arbitrary-precision integers (`42`, `-666`), floats (`-73.0f`, `1729.0`), strings (`"JustUI?\n"`);
+- References to C/C++ objects, treated as pure text (`@img_title`, `@mywidget::draw`);
+- Collections: lists.
+- Functions: closures (carry their own context), but not curried.
+- Records.
+
+Another kind of “data” that isn't actually a language value is record types themselves, e.g. the `jlabel` type which is used to construct records that describe a label widget.
+
+> Note: they couldn't easily be first-class because they're associated with a given interpretation of inline parameters, which makes no visual sense unless the name is explicit. Computing a record type then instantiating it with inline parameters is way too confusing. If it's just used in an update, compute the instance.
+
+---
+
+## Semantics: Basics
+
+Expressions for primitive data types are pure.
+
+The following builtin operators are defined (in decreasing order of precedence).
+
+- `!`, `-`, `...` (unary)
+- `*`, `/`, `%` (left associative)
+- `+`, `-` (left associative)
+- `==`, `!=`, `<`, `>`, `<=`, `>=` (not associative)
+- `&&` (left associative)
+- `||` (left associative)
+- `f <| x` (left associative)
+- `x | f` (right associative)
+
+Arithmetic/logical operators have their usual meaning as in Python/C. The other operators, `...x`, `f <| x` and `x | f`, are described later.
+
+Interesting expressions start at `let`-bindings and functions. Within a scope (described later), values can be defined with a `let`-binding:
+
+```
+let x = 3 * 14 + 31;
+```
+
+And functions can be defined with `fun`:
+
+```
+fun add(x, y) = x + y;
+```
+
+The operators `f <| x` and `x | f` are left-sided and right-sided function application, respectively. They are both equivalent to `f(x)` and are mainly useful because of their syntax: they don't need parentheses and are associative, which makes chaining much easier to read.
+
+Functions can take variadic parameters with `...`. There can only be zero or one variadic parameter in a function; it there is one, it must be at the end of the parameter list. The variadic parameter will collect any number of extra arguments (including zero) in a list value.
+
+```
+fun multiply_sum(factor, ...floats) = factor * sum(floats);
+```
+
+Conversely, arguments to a call can be produced from a list by using the pack expansion operator `...`.
+
+```
+let args = [3.2, 4.0, 5.0];
+multiply_sum(...args, 8.0);
+/* equivalent to multiply_sum(3.2, 4.0, 5.0, 8.0) = 54.4 */
+```
+
+---
+
+## Semantics: Record types
+
+Record types are dictionary-like structures with key/value pairs. The primary motivation for records is to represent widgets.
+
+Records are built using _record constructors_, which are simply the names of record types. Using a record type's name as an expression produces the _default record_ of that type, which is usually empty. Most of the time however, the record is further specified by adding fields in braces:
+
+```
+/* Default record of type jwidget */
+jwidget;
+/* Default jwidget with the height set to 20 */
+jwidget { height: 20; };
+```
+
+`jwidget` also has a children field, which can be used to add new widgets in it.
+
+```
+jwidget {
+   children: [
+      jlabel { text: "Hello" },
+      jlabel { text: "World" }
+   ];
+};
+```
+
+However, this syntax is a bit cumbersome. Record types can take _direct_ parameters, which are raw values not prefixed by a field name. `jwidget` handles its direct parameters by adding the to its `children` field, so the previous example can be shortened to:
+
+```
+jwidget {
+   jlabel { text: "Hello" };
+   jlabel { text: "World" };
+};
+```
+
+In fact, `jlabel` also accepts a single direct parameter which is its string, so the example can be further simplified down to:
+
+```
+jwidget {
+   jlabel { "Hello" };
+   jlabel { "World" };
+};
+```
+
+A constructed record can further be updated with the `<{ ... }` operator, which can override fields. Direct parameters cannot be specified during an update, because direct parameters are literal arguments to the construction function, so they no longer exist once the construction is finished. A typical example is functions to apply common properties on widgets.
+
+```
+/* Make any widget size 80x20 */
+fun mysize(w) = w <{ width: 80; height: 20 };
+/* Widget with three labels of that size */
+jwidget {
+   mysize(jlabel { "Hello" });          // standard function call
+   mysize <| jlabel { "again" };        // left-side function call
+   jlabel { "world!" } | mysize;        // right-side function call
+```
+
+Such functions are often called on direct record parameters (when they represent children of existing widgets), in which case the function call operators `<|` and `|` are useful for improving readability.
+
+When updating a record, other fields can be referred to by using the `this` keyword, which represents the object being updated. Fields are updated in-order, and `this` always reflects the latest value of fields.
+
+```
+fun mysize(w) = w <{
+   margin: this.width - 20;             // refers to original width of w
+   width: this.width - 40;              // refers to original width of w
+   height: this.width;                  // refers to updated width
+};
+```
+
+TODO: Custom record types (`rec`) with direct of parameters: children, string for labels, tabs for gscreen...
+
+TODO: Evaluation order of `this` in record constructors, cycle resolution through call-by-need (arguments and field values are thunked).
+
+TODO: `set` statement modifies a constructor in the current scope.
+
+TODO: Pack expansion for inline parameters
+
+---
+
+## Generating user interfaces
+
+The UI file is interpreted statically. It produces a hierarchy of elements for
+which scene setup code, "signal connections" and access to inner widgets are
+provided.
+
+---
+
+BIG TODO:
+- Don't have a scope and ability to let- or fun-declare inside function body!!
+- `rec x() = y {}; x {}` is it of record type `x` or `y`? How to say that `x`
+  is based on `y`?
+
+IMPLEMENTATION TODO:
+- List syntax
+- List manip' (including for loop)
+
+TODO:
+
+The syntax for assigning at labels is a bit dodgy at the moment. It should be
+`@ident: value` but we already use that for record entry def + implicit child.
+-> Competing methods for accessing fields: we already have `.name`, labels are
+   thus useful for accessing inline-children
+-> But labels were supposed to be for runtime, this is mixing things up
+-> How should labels work really?
+-> TODO
+
+- Need ability to reference sub-images in order to assign sprites to BGs
+  -> builtin sub-image record type
+- Need to have global parameters to control fx/cg
+  -> function-based interface param("FX")
+- "Control-flow": for(each) loops, what else needed for basic ops?
+
+Limitation of lazy record construction: if you use a function in the middle of
+a record construction, the record update `<{ }` will force the evaluation of
+fields even though it would be possible not to force that.
+
+```
+fun f(e) = e <{ width: e.width + 10 };
+rec r1(x) = f <| base { width: x };
+rec r2(x) = r1 { height: this.width; x };
+r2 { 10; }
+```
+
+Capturing "this" in a local variable to get a snapshot is required, otherwise
+we can't refer to parents.
+
+ability to define nice operators?
+
+`fun "<|>"(...elems) = hbox <| jwidget { ...elems };`
+
+(priority/associativity difficult)
+
+---
+
+Notes on resolved topics:
+
+Call-by-need to allow non-recursive dependencies in record constructors.
+
+Semantics of "this" in evaluation of rec:
+-> gscreen { x: 1; y: 2; z; u; v; a: 2; c; }
+-> Fact #1: New fields like x: 1; y: 2 must be defined in terms of base fields
+   of gscreen {}, otherwise it's inconsistent with record update
+-> Fact #2: Parameters may or may not be needed to specify base fields
+-> Build a "future context" which tells how to map fields of "this" to either
+   existing attributes or thunks of that expression, and then use that context
+   during the evaluation of the argument thunk.
+-> OK.
+
+Static is the right choice, even if gintctl might add stuff dynamically
+-> In Azur it will almost entirely be static, we want the ability to optimize
+   things by precomputing.
+-> As long as the interface is well specified (i.e. the added tabs are children
+   of the named child "stack") we can always add some C
+-> The jui-lang file will mostly initialize, we can minimize interference with
+   runtime dynamics, hopefully
+
+---
+
+rogue life bindings UI example?
+
+let PanelFrame = rectangle {
+  bg: @paintPanelFrame
+  padding: 16px
+}
+let BindingsWindow = vbox <| PanelFrame {
+  jlabel { "Select bindings" }
+
+  (Checkbox { bg0: "img1a"; bg1: "img1b" } <|>
+   Checkbox { bg0: "img2a"; bg1: "img2b" } <|>
+   Checkbox { bg0: "img3a"; bg1: "img3b" })
+}
