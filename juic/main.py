@@ -56,8 +56,8 @@ def main(argv):
         parser = juic.parser.JuiParser(lexer)
         ast = parser.scope()
         if opts.get("--debug") == "parser":
-            for e in ast.args:
-                e.dump()
+            for node in ast.args:
+                node.dump()
                 print("---")
             return 0
 
@@ -69,13 +69,13 @@ def main(argv):
     ctx = juic.eval.Context(juic.builtins.builtinClosure)
 
     if "--unit-tests" in opts:
-        for e in ast.args:
-            ctx.execStmt(e)
+        for node in ast.args:
+            ctx.execStmt(node)
         return 0
 
-    for e in ast.args:
-        e.dump()
-        v = ctx.execStmt(e)
+    for node in ast.args:
+        node.dump()
+        v = ctx.execStmt(node)
         v = ctx.force(v)
         print(">>>>>>>", juic.eval.juiValueString(v))
 

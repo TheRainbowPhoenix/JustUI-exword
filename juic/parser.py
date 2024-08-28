@@ -391,7 +391,7 @@ class JuiParser(LL1Parser):
                     node = Node(Node.T.CALL, [node, *args])
 
         # Postfix update or record creation operation
-        while self.la.type in ["{", "<{"]:
+        while self.la is not None and self.la.type in ["{", "<{"]:
             entries = self.record_literal()
             node = Node(Node.T.RECORD, [node, *entries])
 

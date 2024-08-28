@@ -2,7 +2,7 @@ from juic.datatypes import *
 from juic.eval import *
 
 def juiPrint(*args):
-    print("[print]", *args)
+    print("[print]", *(juiValueString(a) for a in args))
 
 def juiLen(x):
     if type(x) not in [str, list]:

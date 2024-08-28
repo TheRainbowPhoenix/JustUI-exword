@@ -1,5 +1,9 @@
 from dataclasses import dataclass, field
-from typing import Callable, Union
+from typing import Callable, Union, TYPE_CHECKING
+import juic
+
+if TYPE_CHECKING:
+    import juic.eval
 
 # Mapping of Jui types to Python types:
 #   Null           None
@@ -62,9 +66,9 @@ class Record:
     # A record type if it's pure, or a thunk with the base object otherwise.
     base: Union[RecordType, "juic.eval.Thunk"]
     # Standard key-value attribute pairs
-    attr: dict[str, "juic.value.Thunk"]
+    attr: dict[str, "juic.eval.Thunk"]
     # Children elements
-    children: list["juic.value.Thunk"]
+    children: list["juic.eval.Thunk"]
     # TODO: Keep track of variables that are not fields, i.e. "methods"?
     # scope: dict[str, "JuiValue"]
     # TODO: Labels
@@ -93,7 +97,7 @@ def juiIsCallable(value):
     return type(value) in [BuiltinFunction, Function]
 
 def juiIsProjectable(value):
-    return type(value) in [ThisRef, Record]
+    return type(value) in [Record, juic.eval.PartialRecordSnapshot]
 
 def juiIsConstructible(value):
     return type(value) in [RecordType, Function]
@@ -133,15 +137,25 @@ def juiValueString(v):
             s += "; ".join(juiValueString(x) for x in r.children)
             return s + "}"
             raise NotImplementedError
-        case Thunk() as th:
+        case juic.eval.Thunk() as th:
             return str(th)
-        case PartialRecordSnapshot() as prs:
+        case juic.eval.PartialRecordSnapshot() as prs:
             return str(prs)
         case _:
             raise NotImplementedError
 
 # Check whether two *forced* values are equal
 def juiValuesEqual(v1, v2):
+    def unwrapThunk(v):
+        match v:
+            case juic.eval.Thunk() as th:
+                assert th.evaluated and not th.invalid
+                return unwrapThunk(th.result)
+            case _:
+                return v
+
+    v1 = unwrapThunk(v1)
+    v2 = unwrapThunk(v2)
     match v1, v2:
         case None, None:
             return True
@@ -177,11 +191,8 @@ def juiValuesEqual(v1, v2):
                    for v1, v2 in zip(r1.children, r2.children)):
                 return False
             return True
-        case Thunk() as th1, Thunk() as th2:
-            assert th1.evaluated and not th1.invalid
-            assert th2.evaluated and not th2.invalid
-            return juiValuesEqual(th1.result, th2.result)
-        case PartialRecordSnapshot(), PartialRecordSnapshot():
+        case juic.eval.PartialRecordSnapshot(), \
+             juic.eval.PartialRecordSnapshot():
             raise Exception("cannot compare PRSs")
         case _, _:
             raise Exception(f"invalid types for comparison: {type(v1)}, {type(v2)}")

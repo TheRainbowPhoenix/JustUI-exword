@@ -27,3 +27,16 @@ let z = 4;
 let helloworld = "Hello, World!";
 len("xyz" + helloworld) + 1;
 //^ 17;
+
+record {};
+//^ record {};
+
+let r = record {x: 2; y: 3+5};
+r;
+//^ record {y:8; x:2};
+
+r.x;
+//^ 2;
+
+record {x: r.x; y: this.x + 2; x: 4; z: this.x + 5};
+//^ record {x: 4; y: 4; z: 9};

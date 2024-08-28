@@ -106,17 +106,17 @@ class Thunk:
 
     def __str__(self):
         s = "Thunk("
-        if th._running:
+        if self._running:
             s += "running, "
-        if th.evaluated:
+        if self.evaluated:
             s += "evaluated"
-            if th.invalid:
+            if self.invalid:
                 s += ", invalid"
             else:
-                s += " = " + juiValueString(th.result)
+                s += " = " + juiValueString(self.result)
         else:
             s += "unevaluated"
-        s += "){ " + str(th.ast) + " }"
+        s += "){ " + str(self.ast) + " }"
         return s
 
 # Object representing the interpretation of a partially-built record. In a
@@ -137,7 +137,7 @@ class PartialRecordSnapshot:
     base: None | Thunk = None
 
     def __str__(self):
-        return "<A PRS AAAAAAH>" # TODO
+        return "<PartialRecordSnapshot>" # TODO
 
     def copy(self):
         return PartialRecordSnapshot(self.fieldThunks.copy(), self.base)
@@ -344,10 +344,21 @@ class Context:
                 return self.evalCall(f, [X])
 
             case Node.T.THIS, []:
-                raise NotImplementedError
+                v = self.lookup("this")
+                if v is None:
+                    raise JuiNameError(f"no 'this' in current context")
+                assert isinstance(v, PartialRecordSnapshot)
+                return v
 
-            case Node.T.PROJ, []:
-                raise NotImplementedError
+            case Node.T.PROJ, [R, field]:
+                r = self.evalExpr(R)
+                requireType(r, juiIsProjectable)
+                f = self.project(r, field)
+                if isinstance(f, Thunk):
+                    return self.evalThunk(f)
+                else:
+                    return f
+
 
             case Node.T.CALL, [F, *A]:
                 f = self.evalExpr(F)
@@ -376,6 +387,22 @@ class Context:
             case _, _:
                 raise Exception("invalid expr o(x_x)o: " + str(node))
 
+    def project(self, v: JuiValue, field: str) -> JuiValue:
+        match v:
+            case Record() as r:
+                if field not in r.attr:
+                    raise Exception(f"access to undefined field {field}")
+                return r.attr[field]
+            case PartialRecordSnapshot() as prs:
+                if field in prs.fieldThunks:
+                    return prs.fieldThunks[field]
+                elif prs.base is None:
+                    raise Exception(f"access to undefined field {field} of 'this'")
+                else:
+                    return self.project(prs.base, v)
+            case _:
+                raise NotImplementedError # unreachable
+
     def execStmt(self, node: Node) -> JuiValue:
         match node.ctor, node.args:
             case Node.T.LET_DECL, [name, X]:
@@ -397,9 +424,9 @@ class Context:
                 ve = self.force(ve)
                 if not juiValuesEqual(vs, ve):
                     print("unit test failed:")
-                    print("  " + str(vs))
+                    print("  " + juiValueString(vs))
                     print("vs.")
-                    print("  " + str(ve))
+                    print("  " + juiValueString(ve))
 
             case _, _:
                 return self.evalExpr(node)
