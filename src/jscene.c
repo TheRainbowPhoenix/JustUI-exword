@@ -209,6 +209,11 @@ void jscene_set_mainmenu(jscene *scene, bool mainmenu)
 	scene->mainmenu = mainmenu;
 }
 
+void jscene_set_poweroff(jscene *scene, bool poweroff)
+{
+	scene->poweroff = poweroff;
+}
+
 jevent jscene_run(jscene *s)
 {
 	keydev_t *d = keydev_std();
