@@ -651,7 +651,13 @@ void jwidget_render(void *w0, int x, int y)
 	/* TODO: jwidget_render(): More border types */
 
 	if(g->background_color != C_NONE) {
-		drect(x1 + b.left, y1 + b.top, x2-1, y2-1, g->background_color);
+		int bgx = x1 + b.left;
+		int bgy = y1 + b.top;
+
+		if(bgx == 0 && bgy == 0 && x2 == DWIDTH && y2 == DHEIGHT)
+			dclear(g->background_color);
+		else
+			drect(bgx, bgy, x2-1, y2-1, g->background_color);
 	}
 
 	/* Call the polymorphic render function at the top-left content point */
