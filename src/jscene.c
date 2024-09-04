@@ -55,6 +55,7 @@ jscene *jscene_create(int x, int y, int w, int h, void *parent)
 	s->lost_events = 0;
 	s->mainmenu = true;
 	s->poweroff = true;
+	s->autopaint = false;
 
 	/* Prepare first layout/paint operation */
 	s->widget.dirty = 1;
@@ -214,6 +215,11 @@ void jscene_set_poweroff(jscene *scene, bool poweroff)
 	scene->poweroff = poweroff;
 }
 
+void jscene_set_autopaint(jscene *scene, bool autopaint)
+{
+	scene->autopaint = autopaint;
+}
+
 jevent jscene_run(jscene *s)
 {
 	keydev_t *d = keydev_std();
@@ -229,6 +235,11 @@ jevent jscene_run(jscene *s)
 
 		/* Queued GUI events */
 		e = jscene_read_event(s);
+		if(e.type == JSCENE_PAINT && s->autopaint) {
+			jscene_render(s);
+			dupdate();
+			continue;
+		}
 		if(e.type != JSCENE_NONE && !jscene_process_event(s, e)) break;
 
 		/* Queued keyboard events */

@@ -35,6 +35,8 @@ typedef struct {
    bool mainmenu;
    /* Whether jscene_run() powers off */
    bool poweroff;
+   /* Whether jscene_run() will autopaint */
+   bool autopaint;
 
 } jscene;
 
@@ -117,6 +119,17 @@ void jscene_set_mainmenu(jscene *scene, bool mainmenu);
    add-in "must" resume after powering on again, however sensitive programs
    will probably want to save important data before leaving anyway. */
 void jscene_set_poweroff(jscene *scene, bool poweroff);
+
+/* jscene_set_autopaint(): Set whether jscene_run() handles its own painting
+
+   This will automatically handle JSCENE_PAINT events by drawing the scene
+   widget and updating the screen. You should use this only if the scene is the
+   only thing to draw; don't overdraw after this. If you have things to draw
+   not handled by jscene, handle JSCENE_PAINT yourself.
+
+   When enabling autopaint, you should also set a background color for the
+   scene, otherwise frames will draw transparently on top of each other. */
+void jscene_set_autopaint(jscene *scene, bool autopaint);
 
 /* jscene_run(): Run a scene's main loop
 
