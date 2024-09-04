@@ -77,6 +77,8 @@ typedef struct jlist {
 
     /* Currently selected item, -1 if none */
     int cursor;
+    /* User data pointer */
+    void *user;
 
 } jlist;
 
@@ -91,8 +93,9 @@ jlist *jlist_create(jlist_item_info_function info_function,
 
 /* jlist_update_model(): Update jlists's information about the model
    The new model size is passed as parameter. The model is refreshed by
-   repeatedly calling the info function. */
-void jlist_update_model(jlist *l, int item_count);
+   repeatedly calling the info function. The user pointer is also updated. To
+   keep it unchanged, pass `l->user` as third parameter. */
+void jlist_update_model(jlist *l, int item_count, void *user);
 
 /* jlist_clear(): Remove all items */
 void jlist_clear(jlist *l);

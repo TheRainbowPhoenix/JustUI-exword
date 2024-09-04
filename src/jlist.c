@@ -37,6 +37,7 @@ jlist *jlist_create(jlist_item_info_function info_function,
     l->info_function = info_function;
     l->paint_function = paint_function;
     l->cursor = -1;
+    l->user = NULL;
     return l;
 }
 
@@ -113,8 +114,10 @@ int jlist_selected_item(jlist *l)
 // Item management
 //---
 
-void jlist_update_model(jlist *l, int item_count)
+void jlist_update_model(jlist *l, int item_count, void *user)
 {
+    l->user = user;
+
     if(l->item_count != item_count) {
         l->items = realloc(l->items, item_count * sizeof *l->items);
         if(!l->items) {
@@ -138,7 +141,7 @@ void jlist_update_model(jlist *l, int item_count)
 
 void jlist_clear(jlist *l)
 {
-    jlist_update_model(l, 0);
+    jlist_update_model(l, 0, NULL);
 }
 
 jrect jlist_selected_region(jlist *l)
