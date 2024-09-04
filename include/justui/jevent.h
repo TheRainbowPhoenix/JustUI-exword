@@ -9,6 +9,7 @@
 #include <justui/jwidget.h>
 
 #include <gint/keyboard.h>
+#include <gint/defs/attributes.h>
 
 /* jevent: GUI event
 
@@ -48,5 +49,21 @@ typedef struct {
 	};
 
 } jevent;
+
+/* Check if an event is a key press of the specified key with modifiers. */
+GINLINE static bool jevent_is_press_mods(
+   jevent e, int key, bool shift, bool alpha) {
+   return e.type == JWIDGET_KEY
+      && (e.key.type == KEYEV_DOWN || e.key.type == KEYEV_HOLD)
+      && e.key.key == key
+      && e.key.shift == shift
+      && e.key.alpha == alpha;
+}
+
+#define jevent_is_press(E, KEY) jevent_is_press_mods(E, KEY, false, false)
+#define jevent_is_shift_press(E, KEY) jevent_is_press_mods(E, KEY, true, false)
+#define jevent_is_alpha_press(E, KEY) jevent_is_press_mods(E, KEY, false, true)
+#define jevent_is_shift_alpha_press(E, KEY) \
+   jevent_is_press_mods(E, KEY, true, true)
 
 #endif /* _J_EVENT */
