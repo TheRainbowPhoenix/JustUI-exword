@@ -5,6 +5,7 @@
 
 #include <gint/display.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* Type identifier for jlist */
 static int jlist_type_id = -1;
@@ -126,6 +127,7 @@ void jlist_update_model(jlist *l, int item_count)
 
     l->item_count = item_count;
     for(int i = 0; i < item_count; i++) {
+        memset(&l->items[i], 0, sizeof l->items[i]);
         l->info_function(l, i, &l->items[i]);
     }
 
