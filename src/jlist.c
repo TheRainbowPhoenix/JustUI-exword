@@ -19,8 +19,8 @@ struct jlist_item_info {
     bool selectable;
 };
 
-jlist *jlist_create(void *parent, jlist_item_info_function info_function,
-    jlist_item_paint_function paint_function)
+jlist *jlist_create(jlist_item_info_function info_function,
+    jlist_item_paint_function paint_function, void *parent)
 {
     if(jlist_type_id < 0)
         return NULL;

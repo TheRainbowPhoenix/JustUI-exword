@@ -25,9 +25,10 @@ typedef struct {
 
 } jscrolledlist;
 
-/* jscrolledlist_create(): Create a scrolled list */
-jscrolledlist *jscrolledlist_create(void *parent,
+/* Create a scrolled list; arguments are forwarded to the jlist. */
+jscrolledlist *jscrolledlist_create(
     jlist_item_info_function info_function,
-    jlist_item_paint_function paint_function);
+    jlist_item_paint_function paint_function,
+    void *parent);
 
 #endif /* _J_JSCROLLEDLIST */

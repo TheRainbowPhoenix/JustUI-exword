@@ -8,9 +8,10 @@
 /* Type identifier for jscrolledlist */
 static int jscrolledlist_type_id = -1;
 
-jscrolledlist *jscrolledlist_create(void *parent,
+jscrolledlist *jscrolledlist_create(
     jlist_item_info_function info_function,
-    jlist_item_paint_function paint_function)
+    jlist_item_paint_function paint_function,
+    void *parent)
 {
     if(jscrolledlist_type_id < 0)
         return NULL;
@@ -26,7 +27,7 @@ jscrolledlist *jscrolledlist_create(void *parent,
     jwidget_set_stretch(l->frame, 1, 1, false);
     jframe_set_align(l->frame, J_ALIGN_LEFT, J_ALIGN_TOP);
 
-    l->list = jlist_create(l->frame, info_function, paint_function);
+    l->list = jlist_create(info_function, paint_function, l->frame);
     jwidget_set_stretch(l->list, 1, 1, false);
 
     return l;
@@ -67,7 +68,7 @@ static bool jscrolledlist_poly_event(void *l0, jevent e)
     if(e.type == JLIST_MODEL_UPDATED && e.source == l->list)
         shake_scroll(l, true);
 
-    /* Allow the evnts to bubble up */
+    /* Allow the events to bubble up */
     return false;
 }
 

@@ -39,9 +39,16 @@ typedef struct {
 
 struct jlist;
 
+/* Info function: should fill `info` with the data related to list element
+   #index (starts at 0). `info` is guaranteed to be pre-initialized to 0. */
 typedef void (*jlist_item_info_function)(struct jlist *list, int index,
     jlist_item_info *info);
 
+/* Paint function: should draw element #index on the rectangle of size `w×h`
+   at position `x,y`. If the item has a selection style that is not
+   JLIST_SELECTION_MANUAL, the selection effect is handled by jlist. Otherwise,
+   the paint function should check the `selected` parameter to apply any
+   relevant styling. */
 typedef void (*jlist_item_paint_function)(int x, int y, int w, int h,
     struct jlist *list, int index, bool selected);
 
@@ -79,8 +86,8 @@ extern uint16_t JLIST_SELECTION_MOVED;
 extern uint16_t JLIST_MODEL_UPDATED;
 
 /* jlist_create(): Create a new (empty) jlist. */
-jlist *jlist_create(void *parent, jlist_item_info_function info_function,
-    jlist_item_paint_function paint_function);
+jlist *jlist_create(jlist_item_info_function info_function,
+    jlist_item_paint_function paint_function, void *parent);
 
 /* jlist_update_model(): Update jlists's information about the model
    The new model size is passed as parameter. The model is refreshed by
