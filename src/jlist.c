@@ -193,16 +193,24 @@ static void jlist_poly_render(void *l0, int x, int y)
 
     for(int i = 0; i < l->item_count; i++) {
         jlist_item_info *info = &l->items[i];
+        bool selected = (l->cursor == i);
 
-        if(info->delegate) {
+        int h = info->delegate
+            ? jwidget_full_height(info->delegate)
+            : info->natural_height;
+
+        if(selected && info->selection_style == JLIST_SELECTION_BACKGROUND)
+            drect(x1, y, x2, y + h - 1, info->selection_bg_color);
+
+        if(info->delegate)
             jwidget_render(info->delegate, x1, y);
-            y += jwidget_full_height(info->delegate);
-        }
-        else {
-            l->paint_function(x1, y, x2-x1+1, info->natural_height, l, i,
-                l->cursor == i);
-            y += info->natural_height;
-        }
+        else
+            l->paint_function(x1, y, x2-x1+1, h, l, i, selected);
+
+        if(selected && info->selection_style == JLIST_SELECTION_INVERT)
+            drect(x1, y, x2, y + h - 1, C_INVERT);
+
+        y += h;
     }
 }
 

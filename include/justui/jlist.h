@@ -9,10 +9,12 @@
 #include <justui/jwidget.h>
 
 typedef enum {
+    /* Selected item is styled by the paint function or delegate */
+    JLIST_SELECTION_MANUAL = 0,
     /* Selected item is indicated by inverting its rendered area */
-    JLIST_SELECTION_INVERT = 0,
+    JLIST_SELECTION_INVERT = 1,
     /* Selected item is indicated by applying a background color */
-    JLIST_SELECTION_BACKGROUND = 1,
+    JLIST_SELECTION_BACKGROUND = 2,
 
 } jlist_selection_style;
 
@@ -23,6 +25,10 @@ typedef struct {
     bool selectable;
     /* Whether item can be triggered */
     bool triggerable;
+    /* Selection style for jlist to draw */
+    int8_t selection_style;
+    /* Selection background color for JLIST_SELECTION_BACKGROUND */
+    uint16_t selection_bg_color;
 
     /* The following fields are only applicable if there is no delegate. */
 
