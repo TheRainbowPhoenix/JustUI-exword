@@ -117,8 +117,11 @@ static void jfkeys_poly_render(void *f0, int base_x, int y)
 		if(!text || (*text != '.' && *text != '/' && *text != '@'
 			&& *text != '#')) continue;
 
-		int x = base_x + 4 + 65 * position;
-		int w = 63;
+		int fw = jwidget_full_width(f);
+		int margin = (fw >= 250 ? 4 : 2);
+		int spacing = 2;
+		int w = (fw - 2 * margin - 5 * spacing) / 6;
+		int x = base_x + margin + (w + spacing) * position;
 		int color = (text[0] == '#') ? f->text_special_color : f->text_color;
 
 		if(text[0] == '.') {
