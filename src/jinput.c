@@ -351,10 +351,10 @@ static jwidget_poly type_jinput = {
 	.destroy = jinput_poly_destroy,
 };
 
-__attribute__((constructor(1003)))
+__attribute__((constructor))
 static void j_register_jinput(void)
 {
-	jinput_type_id = j_register_widget(&type_jinput, "jwidget");
+	jinput_type_id = j_register_widget(&type_jinput);
 	JINPUT_VALIDATED = j_register_event();
 	JINPUT_CANCELED = j_register_event();
 }

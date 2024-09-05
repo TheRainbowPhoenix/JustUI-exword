@@ -48,8 +48,8 @@ static jwidget_poly type_jpainted = {
 };
 
 /* Type registration */
-__attribute__((constructor(1004)))
+__attribute__((constructor))
 static void j_register_jpainted(void)
 {
-	jpainted_type_id = j_register_widget(&type_jpainted, "jwidget");
+	jpainted_type_id = j_register_widget(&type_jpainted);
 }

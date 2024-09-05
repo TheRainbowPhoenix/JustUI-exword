@@ -205,8 +205,8 @@ static jwidget_poly type_jfkeys = {
 };
 
 /* Type registration */
-__attribute__((constructor(1005)))
+__attribute__((constructor))
 static void j_register_jfkeys(void)
 {
-	jfkeys_type_id = j_register_widget(&type_jfkeys, "jwidget");
+	jfkeys_type_id = j_register_widget(&type_jfkeys);
 }

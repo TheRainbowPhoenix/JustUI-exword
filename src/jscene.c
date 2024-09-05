@@ -297,10 +297,10 @@ static jwidget_poly type_jscene = {
 	.destroy = NULL,
 };
 
-__attribute__((constructor(1001)))
+__attribute__((constructor))
 static void j_register_jscene(void)
 {
-	jscene_type_id = j_register_widget(&type_jscene, "jwidget");
+	jscene_type_id = j_register_widget(&type_jscene);
 	JSCENE_NONE = j_register_event();
 	JSCENE_PAINT = j_register_event();
 	JSCENE_KEY = JWIDGET_KEY;

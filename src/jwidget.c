@@ -12,7 +12,6 @@
 #define WIDGET_TYPES_MAX 32
 
 /* Polymorphic functions for jwidget */
-static jwidget_poly_render_t jwidget_poly_render;
 static jwidget_poly_csize_t  jwidget_poly_csize;
 
 /* jwidget type definition */
@@ -21,7 +20,7 @@ static jwidget_poly type_jwidget = {
 	.csize   = jwidget_poly_csize,
 	.layout  = NULL,
 	.render  = jwidget_poly_render,
-	.event   = NULL,
+	.event   = jwidget_poly_event,
 	.destroy = NULL,
 };
 
@@ -40,7 +39,7 @@ uint16_t JWIDGET_FOCUS_OUT;
 // Polymorphic functions for widgets
 //---
 
-static void jwidget_poly_render(void *w0, int x, int y)
+void jwidget_poly_render(void *w0, int x, int y)
 {
 	J_CAST(w)
 	jlayout_stack *l;
@@ -84,6 +83,13 @@ static void jwidget_poly_csize(void *w0)
 		w->w = max(w->w, child->x + child->w);
 		w->h = max(w->h, child->y + child->h);
 	}
+}
+
+bool jwidget_poly_event(void *w0, jevent e)
+{
+	J_CAST(w)
+	(void)w;
+	return false;
 }
 
 //---
@@ -721,25 +727,14 @@ char const *jwidget_type(void *w0)
 	return widget_types[w->type]->name;
 }
 
-int j_register_widget(jwidget_poly *poly, char const *inherits)
+int j_register_widget(jwidget_poly *poly)
 {
-	/* Resolve inheritance */
-	if(inherits) {
-		jwidget_poly const *base = NULL;
-
-		for(int i = 0; i < WIDGET_TYPES_MAX && !base; i++) {
-			if(widget_types[i] && !strcmp(widget_types[i]->name, inherits))
-				base = widget_types[i];
-		}
-
-		if(!base) return -1;
-
-		if(!poly->csize)   poly->csize   = base->csize;
-		if(!poly->layout)  poly->layout  = base->layout;
-		if(!poly->render)  poly->render  = base->render;
-		if(!poly->event)   poly->event   = base->event;
-		if(!poly->destroy) poly->destroy = base->destroy;
-	}
+	/* Resolve default behaviors */
+	if(!poly->csize)   poly->csize   = jwidget_poly_csize;
+	if(!poly->layout)  poly->layout  = NULL;
+	if(!poly->render)  poly->render  = jwidget_poly_render;
+	if(!poly->event)   poly->event   = jwidget_poly_event;
+	if(!poly->destroy) poly->destroy = NULL;
 
 	for(int i = 0; i < WIDGET_TYPES_MAX; i++) {
 		if(widget_types[i] == NULL) {

@@ -125,19 +125,12 @@ static jwidget_poly type_jcounter = {
 
 static int jcounter_type_id;
 
-__attribute__((constructor(2001)))
+__attribute__((constructor))
 static void j_register_jcounter(void)
 {
-	jcounter_type_id = j_register_widget(&type_jcounter, "jwidget");
+	jcounter_type_id = j_register_widget(&type_jcounter);
 }
 ```
-
-The second parameter to `j_register_widget()` specifies inheritance. `jcounter`
-inherits from `jwidget`, which means that the unspecified polymorphic functions
-(`layout`, `event` and `destroy`) will use the default behavior of `jwidget`.
-This is mostly useful if you don't specify `csize` (the default behavior is to
-select the smallest size where all children fit) or `render` (the default
-behavior is to render all visible children).
 
 The type ID returned by `j_register_widget()` is how JustUI differentiates
 labels from input fields from custom counters. When creating the widget, you

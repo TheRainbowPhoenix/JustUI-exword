@@ -79,8 +79,8 @@ static jwidget_poly type_jscrolledlist = {
     .event   = jscrolledlist_poly_event,
 };
 
-__attribute__((constructor(1002)))
+__attribute__((constructor))
 static void j_register_jscrolledlist(void)
 {
-    jscrolledlist_type_id = j_register_widget(&type_jscrolledlist, "jwidget");
+    jscrolledlist_type_id = j_register_widget(&type_jscrolledlist);
 }

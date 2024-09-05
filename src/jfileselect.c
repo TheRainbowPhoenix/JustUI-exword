@@ -589,10 +589,10 @@ static jwidget_poly type_jfileselect = {
 	.destroy = jfileselect_poly_destroy,
 };
 
-__attribute__((constructor(1003)))
+__attribute__((constructor))
 static void j_register_jfileselect(void)
 {
-	jfileselect_type_id = j_register_widget(&type_jfileselect, "jwidget");
+	jfileselect_type_id = j_register_widget(&type_jfileselect);
 	JFILESELECT_LOADED = j_register_event();
 	JFILESELECT_VALIDATED = j_register_event();
 	JFILESELECT_CANCELED = j_register_event();

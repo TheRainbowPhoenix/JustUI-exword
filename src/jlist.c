@@ -277,10 +277,10 @@ static jwidget_poly type_jlist = {
     .destroy = jlist_poly_destroy,
 };
 
-__attribute__((constructor(1001)))
+__attribute__((constructor))
 static void j_register_jlist(void)
 {
-    jlist_type_id = j_register_widget(&type_jlist, "jwidget");
+    jlist_type_id = j_register_widget(&type_jlist);
     JLIST_ITEM_TRIGGERED = j_register_event();
     JLIST_SELECTION_MOVED = j_register_event();
     JLIST_MODEL_UPDATED = j_register_event();

@@ -391,8 +391,8 @@ static jwidget_poly type_jframe = {
     .event  = jframe_poly_event,
 };
 
-__attribute__((constructor(1001)))
+__attribute__((constructor))
 static void j_register_jframe(void)
 {
-    jframe_type_id = j_register_widget(&type_jframe, "jwidget");
+    jframe_type_id = j_register_widget(&type_jframe);
 }

@@ -28,7 +28,13 @@
 
    Implementations of this function should use jwidget_msize() on the children
    to position their margin box within the widget's content box. The size set
-   by this function needs not be in the minimum/maximum range of the widget. */
+   by this function needs not be in the minimum/maximum range of the widget,
+   which is handled later.
+
+   If not overloaded (i.e. NULL in the poly structure), the default behavior is
+   to compute the smallest size that fits all children (based on their own
+   natural content size), which only makes sense if the children are at fixed
+   positions. */
 typedef void jwidget_poly_csize_t(void *w);
 
 /* jwidget_poly_layout_t: Layout a widget after its size has been set
@@ -37,25 +43,45 @@ typedef void jwidget_poly_csize_t(void *w);
    the widget has no layout. The margin-box size allocated to the widget has
    been set in (w->w) and (w->h); the widget must now position its contents and
    children. If the widget has a layout, the layout's specialized function is
-   called instead of this one. */
+   called instead of this one.
+
+   Custom positioning for children is only relevant for widgets that use custom
+   layouts, which is fairly rare. Most often, this function is used to position
+   internal elements of the widget after the size has been set (e.g. jlabel
+   computes line breaks here).
+
+   If not overloaded (i.e. NULL in the poly structure), the default behavior is
+   to leave children's positions unchanged, assuming they are fixed. */
 typedef void jwidget_poly_layout_t(void *w);
 
 /* jwidget_poly_render_t: Render a widget
 
    This function is called during rendering after the widget's geometry is
    drawn. (x,y) are the coordinates of the content box. This function must
-   render widget-specific visuals; there is no clipping, so the widget should
-   honor its width and height.
+   render widget-specific visuals. If the widget is clipped (as specified by
+   `jwidget_set_clipped()`), this function can specify any drawing coordinates
+   and all drawing will automatically be restricted with the widget's box.
+   However, if the widget is not clipped, drawing beyond the widget's width and
+   height will overflow to other widgets.
 
-   This function should call jwidget_render() for all children that need to be
-   rendered. jwidget_render() handles the geometry and takes as parameters the
-   coordinates of the margin box, so it can be called as:
+   This function should render its children. In the simple case where all
+   children can be rendered at the same time, you can simply call
+   `jwidget_poly_render(w)` which will do that.
+
+   If for any reason children need to be rendered separately, this function can
+   also called `jwidget_render()` on individual children. `jwidget_render()`
+   handles the geometry and takes as parameters the coordinates of the margin
+   box, so it can be called as:
 
      jwidget_render(child, x + child->x, y + child->y).
 
    It will draw the geometry and call the polymorphic renderer of the child at
-   its content-box coordinates. Normally you can ignore geometry altogether. */
+   its content-box coordinates. Normally you can ignore geometry altogether.
+
+   If not overloaded, the behavior is `jwidget_poly_render(w)`, i.e. just
+   render the children if there are any. */
 typedef void jwidget_poly_render_t(void *w, int x, int y);
+extern jwidget_poly_render_t jwidget_poly_render;
 
 /* jwidget_poly_event_t: Handle an event
 
@@ -63,22 +89,32 @@ typedef void jwidget_poly_render_t(void *w, int x, int y);
    key events. This function is somewhat of a catch-all function for dynamic
    occurrences. The widget should either accept the event, do something with
    it, and return true, or refuse the event, do nothing and return false. This
-   influences events that propagate, such as key events. */
+   influences events that propagate, such as key events.
+
+   This function should always default to
+
+       return jwidget_poly_event(w, e);
+
+   to allow default/generic behaviors to propagate, unless the widget
+   explicitly wants to interfere with them. */
 typedef bool jwidget_poly_event_t(void *w, jevent e);
+extern jwidget_poly_event_t jwidget_poly_event;
 
 /* jwidget_poly_destroy_t: Destroy a widget's specific resources
 
    This function must destroy the widget-specific resources. It is called by
    jwidget_destroy(), which follows it by freeing the widget's standard data
    and destroying the children. This function can be NULL if there are no
-   widget-specific resources to free. */
+   widget-specific resources to free. It should not call the "base" version of
+   the function. */
 typedef void jwidget_poly_destroy_t(void *w);
 
 /* jwidget_poly: Polymorphic interface for a widget type */
 typedef struct {
 	/* Type name, used for display and inheritance */
 	char const *name;
-	/* Polymorphic functions */
+	/* Polymorphic functions. If unused for custom widgets, should be set to
+	   NULL and the default behavior (described above) will apply. */
 	jwidget_poly_csize_t   *csize;
 	jwidget_poly_layout_t  *layout;
 	jwidget_poly_render_t  *render;
@@ -95,13 +131,8 @@ typedef struct {
 
    This function returns a new widget type ID to pass to jwidget_init() when
    creating widgets of the custom type. Returns -1 if registration fails. The
-   polymorphic structure must outlive all widgets of the custom type.
-
-   If (inherits) is non-NULL, the new type will inherit from the widget type
-   with the provided name. All NULL functions in (poly) will be replaced by the
-   parent type's functions. This mechanism only works if widgets are declared
-   in inheritance order, which is normally enforced by constructor priority. */
-int j_register_widget(jwidget_poly *poly, char const *inherits);
+   polymorphic structure must outlive all widgets of the custom type. */
+int j_register_widget(jwidget_poly *poly);
 
 /* j_register_event(): Register a new event type
 

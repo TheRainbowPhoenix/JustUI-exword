@@ -354,8 +354,8 @@ static jwidget_poly type_jlabel = {
 };
 
 /* Type registration */
-__attribute__((constructor(1002)))
+__attribute__((constructor))
 static void j_register_jlabel(void)
 {
-	jlabel_type_id = j_register_widget(&type_jlabel, "jwidget");
+	jlabel_type_id = j_register_widget(&type_jlabel);
 }
