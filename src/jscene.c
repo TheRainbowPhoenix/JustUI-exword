@@ -45,6 +45,7 @@ jscene *jscene_create(int x, int y, int w, int h, void *parent)
 
 	jwidget_init(&s->widget, jscene_type_id, parent);
 	jwidget_set_fixed_size(s, w, h);
+	jlayout_set_vbox(s);
 
 	s->x = x;
 	s->y = y;
