@@ -89,6 +89,7 @@ bool jwidget_poly_event(void *w0, jevent e)
 {
 	J_CAST(w)
 	(void)w;
+	(void)e;
 	return false;
 }
 

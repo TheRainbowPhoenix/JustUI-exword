@@ -332,7 +332,7 @@ static bool jinput_poly_event(void *i0, jevent e)
 		i->widget.update = 1;
 	}
 
-	return true;
+	return jwidget_poly_event(i, e);
 }
 
 static void jinput_poly_destroy(void *i0)

@@ -259,7 +259,7 @@ static bool jlist_poly_event(void *l0, jevent e)
         return true;
     }
 
-    return false;
+    return jwidget_poly_event(l, e);
 }
 
 static void jlist_poly_destroy(void *l0)

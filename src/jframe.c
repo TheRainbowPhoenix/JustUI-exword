@@ -379,7 +379,7 @@ static bool jframe_poly_event(void *f0, jevent e)
         return true;
     }
 
-    return false;
+    return jwidget_poly_event(f, e);
 }
 
 /* jframe type definition */

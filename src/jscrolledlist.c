@@ -68,8 +68,7 @@ static bool jscrolledlist_poly_event(void *l0, jevent e)
     if(e.type == JLIST_MODEL_UPDATED && e.source == l->list)
         shake_scroll(l, true);
 
-    /* Allow the events to bubble up */
-    return false;
+    return jwidget_poly_event(l, e);
 }
 
 /* jscrolledlist type definition */

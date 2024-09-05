@@ -567,7 +567,7 @@ static bool jfileselect_poly_event(void *fs0, jevent e)
 		}
 	}
 
-	return false;
+	return jwidget_poly_event(fs, e);
 }
 
 static void jfileselect_poly_destroy(void *fs0)
