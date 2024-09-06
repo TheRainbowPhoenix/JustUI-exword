@@ -4,8 +4,8 @@
 #include <gint/std/stdlib.h>
 #include <gint/std/string.h>
 
-/* Type identified for jfkeys */
-static int jfkeys_type_id = -1;
+J_DEFINE_WIDGET(jfkeys, csize, render, event)
+J_DEFINE_EVENTS(JFKEYS_TRIGGERED)
 
 extern font_t j_font_fkeys_fx;
 
@@ -89,14 +89,14 @@ static char const *get_label(char const *level, int key, size_t *len)
 // Polymorphic widget operations
 //---
 
-static void jfkeys_poly_csize(void *f0)
+void jfkeys_poly_csize(void *f0)
 {
 	jfkeys *f = f0;
 	f->widget.w = DWIDTH;
 	f->widget.h = JFKEYS_HEIGHT;
 }
 
-static void jfkeys_poly_render(void *f0, int base_x, int y)
+void jfkeys_poly_render(void *f0, int base_x, int y)
 {
 	jfkeys *f = f0;
 
@@ -156,6 +156,38 @@ static void jfkeys_poly_render(void *f0, int base_x, int y)
 	dfont(old_font);
 }
 
+bool jfkeys_poly_event(void *f0, jevent e)
+{
+	jfkeys *f = f0;
+	jevent te;
+	te.source = f;
+	te.type = JFKEYS_TRIGGERED;
+
+	if(e.type == JWIDGET_KEY && e.key.type == KEYEV_DOWN) {
+		int fun = keycode_function(e.key.key);
+		if(fun >= 0) {
+			te.data = fun - 1;
+			jwidget_emit(f, te);
+			return true;
+		}
+
+#if GINT_HW_CP
+		static uint8_t const CP_Fk[6] = {
+			KEY_EQUALS, KEY_X, KEY_Y, KEY_Z, KEY_CARET, KEY_DIV };
+
+		for(int i = 0; i < 6; i++) {
+			if(e.key.key == CP_Fk[i]) {
+				te.data = i;
+				jwidget_emit(f, te);
+				return true;
+			}
+		}
+#endif
+	}
+
+	return jwidget_poly_event(f, e);
+}
+
 int jfkeys_level(jfkeys *f)
 {
 	return f->level;
@@ -192,21 +224,4 @@ void jfkeys_set_color(
 void jfkeys_set_font(jfkeys *keys, font_t const *font)
 {
 	keys->font = font;
-}
-
-/* jfkeys type definition */
-static jwidget_poly type_jfkeys = {
-	.name    = "jfkeys",
-	.csize   = jfkeys_poly_csize,
-	.layout  = NULL,
-	.render  = jfkeys_poly_render,
-	.event   = NULL,
-	.destroy = NULL,
-};
-
-/* Type registration */
-__attribute__((constructor))
-static void j_register_jfkeys(void)
-{
-	jfkeys_type_id = j_register_widget(&type_jfkeys);
 }

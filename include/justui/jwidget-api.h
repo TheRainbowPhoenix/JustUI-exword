@@ -203,7 +203,6 @@ bool jwidget_event(void *w, jevent e);
    gets the functions `jpainted_poly_csize` and `jpainted_poly_render` from
    context, registers the type at startup and provides `jpainted_type_id` for
    the widget creation function. */
-
 #define J_DEFINE_WIDGET(NAME, ...) \
     static int NAME##_type_id = -1; \
     J_REPEAT(J_DEFINE_WIDGET_POLY_PROTO, (NAME), __VA_ARGS__) \
@@ -215,10 +214,25 @@ bool jwidget_event(void *w, jevent e);
     static void j_register_##NAME(void) { \
         NAME##_type_id = j_register_widget(&type_##NAME); \
     }
-
 #define J_DEFINE_WIDGET_POLY(NAME, METHOD) \
     .METHOD = NAME##_poly_##METHOD,
 #define J_DEFINE_WIDGET_POLY_PROTO(NAME, METHOD) \
     extern jwidget_poly_##METHOD##_t NAME##_poly_##METHOD;
+
+/* Helper macro for defining new events. Each parameter is an event name to
+   define, e.g.
+
+   ```
+   J_DEFINE_EVENTS(MYWIDGET_EVENT1, MYWIDGET_EVENT2, MYWIDGET_EVENT3)
+   ``` */
+#define J_DEFINE_EVENTS(...) \
+    uint16_t __VA_ARGS__; \
+    __attribute__((constructor)) \
+    static void J_DEFINE_EVENTS_NAME(__COUNTER__)(void) { \
+        J_REPEAT(J_DEFINE_EVENTS_INIT, (), __VA_ARGS__) \
+    }
+#define J_DEFINE_EVENTS_NAME2(COUNTER) _j_init_##COUNTER
+#define J_DEFINE_EVENTS_NAME(COUNTER) J_DEFINE_EVENTS_NAME2(COUNTER)
+#define J_DEFINE_EVENTS_INIT(EVENT) EVENT = j_register_event();
 
 #endif /* _J_JWIDGET_API */

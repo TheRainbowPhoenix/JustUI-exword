@@ -39,7 +39,7 @@
    * "/NAME" for a menu key;
    * ".NAME" for an entry key;
    * "@NAME" for an action key;
-   " "#NAME" for a special key.
+   * "#NAME" for a special key.
 
    The names are separated by semicolons, eg. "/F1;;/F3;.F4;@F5;#F6". Several
    sets of function keys can be defined if separated by a '|' character. For
@@ -51,7 +51,11 @@
    with its 128x64 resolution, the convention is that the image is 128x8, and
    key #i is positioned at x = 21i+2 with width 19. The equivalent of "|"-
    separated levels is allowed by stacking up rows of keys (in which case the
-   image is of height 9n-1 for n rows). */
+   image is of height 9n-1 for n rows).
+
+   jkfeys will gobble keyboard events for F1..F6 and emit JFKEYS_TRIGGERED
+   events instead. However, in general jfkeys doesn't have keyboard focus, so
+   you have to give the events manually. */
 typedef struct {
 	jwidget widget;
 	int8_t level;
@@ -71,6 +75,9 @@ typedef struct {
 	font_t const *font;
 
 } jfkeys;
+
+/* Events */
+extern uint16_t JFKEYS_TRIGGERED;
 
 /* jfkeys_create2(): Create a set of function keys
 
