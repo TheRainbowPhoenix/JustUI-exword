@@ -7,7 +7,6 @@
 
 #include <justui/defs.h>
 #include <justui/jwidget.h>
-#include <justui/jwidget-api.h>
 
 /* jpainted: Simple widget designed to integrate low-effort rendering
 

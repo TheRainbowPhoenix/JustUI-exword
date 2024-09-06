@@ -6,6 +6,7 @@
 #define _J_JWIDGET_API
 
 #include <justui/defs.h>
+#include <justui/p/preproc.h>
 #include <justui/jevent.h>
 #include <gint/keyboard.h>
 
@@ -185,5 +186,39 @@ void jwidget_emit(void *w, jevent e);
    This function calls the polymorphic event function of the targeted widget to
    notify it of the specified event. */
 bool jwidget_event(void *w, jevent e);
+
+/* Helper macro for defining a new widget. Parameters are:
+   - Widget NAME
+   - Variadic list of overridden widget poly METHODs, can be empty
+   - Implicity, non-static poly functions `<NAME>_poly_<METHOD>`
+   And it defines:
+   - The `NAME_type_id` identifier for use with `jwidget_init()`
+   - A constructor that registers the widget and sets `NAME_type_id`.
+
+   For example:
+   ```
+   J_DEFINE_WIDGET(jpainted, csize, render)
+   ```
+
+   gets the functions `jpainted_poly_csize` and `jpainted_poly_render` from
+   context, registers the type at startup and provides `jpainted_type_id` for
+   the widget creation function. */
+
+#define J_DEFINE_WIDGET(NAME, ...) \
+    static int NAME##_type_id = -1; \
+    J_REPEAT(J_DEFINE_WIDGET_POLY_PROTO, (NAME), __VA_ARGS__) \
+    static jwidget_poly type_##NAME = { \
+        .name = #NAME, \
+        J_REPEAT(J_DEFINE_WIDGET_POLY, (NAME), __VA_ARGS__) \
+    }; \
+    __attribute__((constructor)) \
+    static void j_register_##NAME(void) { \
+        NAME##_type_id = j_register_widget(&type_##NAME); \
+    }
+
+#define J_DEFINE_WIDGET_POLY(NAME, METHOD) \
+    .METHOD = NAME##_poly_##METHOD,
+#define J_DEFINE_WIDGET_POLY_PROTO(NAME, METHOD) \
+    extern jwidget_poly_##METHOD##_t NAME##_poly_##METHOD;
 
 #endif /* _J_JWIDGET_API */
