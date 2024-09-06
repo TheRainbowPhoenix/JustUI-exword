@@ -256,6 +256,7 @@ static bool jinput_poly_event(void *i0, jevent e)
 
 	if(e.type == JWIDGET_KEY) {
 		key_event_t ev = e.key;
+		bool handled = true;
 
 		/* Releasing modifiers */
 		if(ev.type == KEYEV_UP && ev.key == KEY_SHIFT) {
@@ -326,10 +327,12 @@ static bool jinput_poly_event(void *i0, jevent e)
 				/* Remove modifiers otherwise */
 				else i->mode &= ~(JINPUT_SHIFT | JINPUT_ALPHA);
 			}
-			else return false;
+			else handled = false;
 		}
 
 		i->widget.update = 1;
+		if(handled)
+			return true;
 	}
 
 	return jwidget_poly_event(i, e);
