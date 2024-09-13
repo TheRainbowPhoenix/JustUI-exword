@@ -46,8 +46,9 @@ New keyboard focus system.
    b. There is a widget-scene call to give a widget active focus. If the widget
       has policy FOCUS_ACCEPT or FOCUS_SCOPE, this call walks up the scope
       chain and assigns new targets until it reaches the scene. If the widget
-      has policy FOCUS_NONE, this call just removes the surrounding scope's
-      target.
+      has is NULL, this call just removes the surrounding scope's target.
+      TODO: If the widget is FOCUS_REJECT, clear scopes from that widget up
+            until reaching the scene.
    X. There is a widget-context call to relinquish one's own focus within the
       parent scope. This is intended to differ from 2.b in that scopes might
       implement special logic for moving focus to a nearby widget.
@@ -73,19 +74,20 @@ New keyboard focus system.
 4. Behavior of built-in widgets
    a. `jfileselect`, `jinput`, `jlist` have policy FOCUS_ACCEPT
    b. `jscene` has policy FOCUS_SCOPE
-      TODO: What about jframe?
    c. `jfkeys` has policy `FOCUS_REJECT` and must be given events manually
    d. Widgets with a stack layout will try and give focus (within their
       surrounding scope) to the current element. If the element is complex, it
       should be a focus scope. Similarly, widgets with invisible children will
       move focus around to their direct children as needed to make sure focus
       remains on a visible child.
+      TODO: Implement stack layout logic
 
 5. Implementation
    a. Events are `FOCUS_CHANGED` when own FOCUSED and ACTIVE_FOCUSED flags have
       changed, and `FOCUS_TARGET_CHANGED` for scopes when the target changes.
 
 NOTES:
+- Update focus flags when removing from parent
 - Focus events don't propagate but are replicated, which adds some complexity
 - Focus scopes could have background focus for jfkeys (left for later). Hard
   part is this isn't specified by jfkeys.

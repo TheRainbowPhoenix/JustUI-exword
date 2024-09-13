@@ -45,6 +45,7 @@ jinput *jinput_create(char const *prompt, size_t length, void *parent)
 	if(!i) return NULL;
 
 	jwidget_init(&i->widget, jinput_type_id, parent);
+	jwidget_set_focus_policy(i, J_FOCUS_POLICY_ACCEPT);
 
 	i->color = C_BLACK;
 	jinput_set_font(i, NULL);
@@ -242,14 +243,8 @@ static bool jinput_poly_event(void *i0, jevent e)
 {
 	jinput *i = i0;
 
-	if(e.type == JWIDGET_FOCUS_IN) {
-		i->cursor = i->size - 1;
-		i->mode = 0;
-		i->widget.update = 1;
-	}
-
-	if(e.type == JWIDGET_FOCUS_OUT) {
-		i->cursor = -1;
+	if(e.type == JWIDGET_FOCUS_CHANGED) {
+		i->cursor = jwidget_has_focus(i) ? (i->size - 1) : -1;
 		i->mode = 0;
 		i->widget.update = 1;
 	}

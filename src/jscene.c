@@ -44,13 +44,17 @@ jscene *jscene_create(int x, int y, int w, int h, void *parent)
 	if(!s) return NULL;
 
 	jwidget_init(&s->widget, jscene_type_id, parent);
+	jwidget_set_focus_policy(s, J_FOCUS_POLICY_SCOPE);
 	jwidget_set_fixed_size(s, w, h);
 	jlayout_set_vbox(s);
+
+	/* The scene is where active focus originates */
+	s->widget.focused = 1;
+	s->widget.active_focused = 1;
 
 	s->x = x;
 	s->y = y;
 
-	s->focus = NULL;
 	s->queue_first = 0;
 	s->queue_next = 0;
 	s->lost_events = 0;
@@ -128,27 +132,37 @@ void jscene_queue_event(jscene *s, jevent e)
 
 void *jscene_focused_widget(jscene *s)
 {
-	return s->focus;
+	jwidget *w = &s->widget;
+	while(w->focus_scope_target)
+		w = w->focus_scope_target;
+	return w;
 }
 
 void jscene_set_focused_widget(jscene *s, void *w0)
 {
 	J_CAST(w)
 
+	/* Unfocus only at the top level */
+	if(!w) {
+		jwidget_scope_set_target(s, NULL);
+		return;
+	}
+
+	if(w->focus_policy == J_FOCUS_POLICY_REJECT)
+		return;
+
 	/* Check that (s) is an ancestor of (w) */
-	if(w) for(jwidget *anc = w; anc != (jwidget *)s; anc = anc->parent) {
+	for(jwidget *anc = w; anc != (jwidget *)s; anc = anc->parent) {
 		if(anc == NULL) return;
 	}
 
-	/* Focus out old focused widget */
-	if(s->focus) jwidget_event(s->focus,
-		(jevent){ .type = JWIDGET_FOCUS_OUT, .source = s->focus });
-
-	s->focus = w;
-
-	/* Focus in newly-selected widget */
-	if(w) jwidget_event(w,
-		(jevent){ .type = JWIDGET_FOCUS_IN, .source = w });
+	/* Set targets in every scope along the way up */
+	jwidget *scope = w;
+	while(scope != NULL) {
+		scope = jwidgetctx_enclosing_focus_scope(scope);
+		jwidget_scope_set_target(scope, w);
+		w = scope;
+	}
 }
 
 void jscene_show_and_focus(jscene *scene, void *w0)
@@ -182,12 +196,13 @@ void jscene_show_and_focus(jscene *scene, void *w0)
 
 bool jscene_process_key_event(jscene *scene, key_event_t event)
 {
-	jwidget *candidate = scene->focus;
+	jwidget *candidate = jscene_focused_widget(scene);
 	jevent e = { .type = JWIDGET_KEY, .key = event };
 
 	while(candidate) {
-		if(jwidget_event(candidate, e)) return true;
-		candidate = candidate->parent;
+		if(jwidget_event(candidate, e))
+			return true;
+		candidate = jwidgetctx_enclosing_focus_scope(candidate);
 	}
 
 	return false;

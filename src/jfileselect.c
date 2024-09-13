@@ -52,6 +52,7 @@ jfileselect *jfileselect_create(void *parent)
 	if(!fs) return NULL;
 
 	jwidget_init(&fs->widget, jfileselect_type_id, parent);
+	jwidget_set_focus_policy(fs, J_FOCUS_POLICY_SCOPE);
 
 	jinput *input = jinput_create("Filename: ", 32, fs);
 	if(!input) {
@@ -116,14 +117,14 @@ static void start_input(jfileselect *fs)
 {
 	fs->input_mode = true;
 	jinput_clear(fs->saveas_input);
-	jwidget_event(fs->saveas_input, (jevent){ .type = JWIDGET_FOCUS_IN });
+	jwidget_scope_set_target(fs, fs->saveas_input);
 	fs->widget.update = true;
 }
 
 static void stop_input(jfileselect *fs)
 {
 	fs->input_mode = false;
-	jwidget_event(fs->saveas_input, (jevent){ .type = JWIDGET_FOCUS_OUT });
+	jwidget_scope_set_target(fs, NULL);
 	fs->widget.update = true;
 }
 

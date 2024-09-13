@@ -31,6 +31,7 @@ jlist *jlist_create(jlist_item_info_function info_function,
         return NULL;
 
     jwidget_init(&l->widget, jlist_type_id, parent);
+    jwidget_set_focus_policy(l, J_FOCUS_POLICY_ACCEPT);
 
     l->item_count = 0;
     l->items = NULL;

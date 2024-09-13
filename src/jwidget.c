@@ -31,9 +31,10 @@ static jwidget_poly *widget_types[WIDGET_TYPES_MAX] = {
 };
 
 /* Events */
-uint16_t JWIDGET_KEY;
-uint16_t JWIDGET_FOCUS_IN;
-uint16_t JWIDGET_FOCUS_OUT;
+J_DEFINE_EVENTS(
+	JWIDGET_KEY,
+	JWIDGET_FOCUS_CHANGED,
+	JWIDGET_FOCUS_TARGET_CHANGED);
 
 //---
 // Polymorphic functions for widgets
@@ -117,9 +118,13 @@ void jwidget_init(jwidget *w, int type, void *parent)
 	w->visible = 1;
 	w->floating = 0;
 	w->clipped = 0;
+	w->focus_policy = J_FOCUS_POLICY_REJECT;
+	w->focused = 0;
+	w->active_focused = 0;
 
 	w->type = type;
 	w->geometry = NULL;
+	w->focus_scope_target = NULL;
 
 	w->x = 0;
 	w->y = 0;
@@ -605,6 +610,10 @@ void jwidget_set_floating(void *w0, bool floating)
 	if(w->parent) w->parent->dirty = 1;
 }
 
+//---
+// Rendering
+//---
+
 bool jwidget_clipped(void *w0)
 {
 	J_CAST(w)
@@ -619,10 +628,6 @@ void jwidget_set_clipped(void *w0, bool clipped)
 	w->clipped = (clipped != 0);
 	w->update = 1;
 }
-
-//---
-// Rendering
-//---
 
 void jwidget_render(void *w0, int x, int y)
 {
@@ -693,6 +698,117 @@ void jwidget_render(void *w0, int x, int y)
 }
 
 //---
+// Keyboard focus
+//---
+
+void jwidget_set_focus_policy(void *w0, jwidget_focus_policy_t fp)
+{
+	J_CAST(w)
+	if(w->focus_policy == fp)
+		return;
+
+	/* If this was a scope, clear it (otherwise the surrounding scope, which is
+	   going to expand, could pick up a second, untargeted focused widget). */
+	if(w->focus_policy == J_FOCUS_POLICY_SCOPE)
+		jwidget_scope_clear_focus(w);
+
+	/* Remove focus if we're no longer accepting it */
+	if(fp == J_FOCUS_POLICY_REJECT && jwidget_has_focus(w))
+		jwidgetctx_drop_focus(w);
+
+	w->focus_policy = fp;
+}
+
+static void notify_focus_changed(jwidget *w)
+{
+	jevent e;
+	e.source = w;
+	e.type = JWIDGET_FOCUS_CHANGED;
+	jwidget_event(w, e);
+}
+
+static void set_focus_chain_active(
+	jwidget *w, bool set, bool notify_toplevel, bool bottom_up)
+{
+	bool recursive =
+		(w->focus_policy == J_FOCUS_POLICY_SCOPE && w->focus_scope_target);
+
+	if(recursive && bottom_up)
+		set_focus_chain_active(w->focus_scope_target, set, true, bottom_up);
+
+	w->active_focused = set;
+	if(notify_toplevel)
+		notify_focus_changed(w);
+
+	if(recursive && !bottom_up)
+		set_focus_chain_active(w->focus_scope_target, set, true, bottom_up);
+}
+
+void jwidget_scope_set_target(void *fs0, void *target0)
+{
+	J_CAST(fs, target)
+	if(!fs || fs->focus_policy != J_FOCUS_POLICY_SCOPE
+		|| fs->focus_scope_target == target)
+		return;
+
+	jwidget *oldt = fs->focus_scope_target;
+
+	if(oldt) {
+		/* First, if we have active focus, remove it from the entire chain */
+		if(jwidget_has_active_focus(fs))
+			set_focus_chain_active(oldt, false, false, true);
+
+		/* Then, remove the focus flag from the scope target and notify it */
+		oldt->focused = 0;
+		notify_focus_changed(oldt);
+	}
+
+	fs->focus_scope_target = target;
+
+	if(target) {
+		/* Now, give focus to the new scope target */
+		target->focused = 1;
+		notify_focus_changed(target);
+
+		if(jwidget_has_active_focus(fs))
+			set_focus_chain_active(target, true, false, false);
+	}
+
+	jevent e;
+	e.source = fs;
+	e.type = JWIDGET_FOCUS_TARGET_CHANGED;
+	jwidget_event(fs, e);
+}
+
+jwidget *jwidgetctx_enclosing_focus_scope(void *w0)
+{
+	J_CAST(w)
+	do w = w->parent;
+	while(w && w->focus_policy != J_FOCUS_POLICY_SCOPE);
+	return w;
+}
+
+void jwidgetctx_drop_focus(void *w0)
+{
+	J_CAST(w)
+	if(!w || !jwidget_has_focus(w))
+		return;
+	jwidget *scope = jwidgetctx_enclosing_focus_scope(w);
+	if(scope)
+		jwidget_scope_clear_focus(scope);
+}
+
+void jwidgetctx_grab_focus(void *w0)
+{
+	J_CAST(w)
+	if(!w || jwidget_has_focus(w))
+		return;
+	jwidget *scope = jwidgetctx_enclosing_focus_scope(w);
+	if(scope)
+		jwidget_scope_set_target(scope, w);
+}
+
+//---
 // Event management
 //---
 
@@ -751,12 +867,4 @@ int j_register_event(void)
 	static int event_id = 0;
 	event_id++;
 	return event_id;
-}
-
-__attribute__((constructor(1000)))
-static void j_register_jwidget(void)
-{
-	JWIDGET_KEY = j_register_event();
-	JWIDGET_FOCUS_IN = j_register_event();
-	JWIDGET_FOCUS_OUT = j_register_event();
 }

@@ -67,6 +67,9 @@ typedef struct jwidget {
 		jlayout_grid  layout_grid;
 	};
 
+	/* Focused subwidget for focus scopes */
+	struct jwidget *focus_scope_target;
+
 	/* Widget type, used to find polymorphic operations */
 	uint8_t type;
 	/* Number of children */
@@ -91,8 +94,13 @@ typedef struct jwidget {
 	uint floating       :1;
 	/* Widget is clipped during rendering */
 	uint clipped        :1;
+	/* Focus policy */
+	uint focus_policy   :2;
+	/* Focus flags */
+	uint focused        :1;
+	uint active_focused :1;
 
-	uint :22;
+	uint :18;
 
 } jwidget;
 
@@ -105,6 +113,17 @@ typedef enum {
 	/* TODO: More border styles (especially on fx-CG 50) */
 
 } jwidget_border_style;
+
+/* jwidget_focus_policy: Options for receiving and handling keyboard focus */
+typedef enum {
+	/* The widget does not accept focus or interact with keyboard (default) */
+	J_FOCUS_POLICY_REJECT,
+	/* The widget accepts keyboard input and hides it from descendants */
+	J_FOCUS_POLICY_ACCEPT,
+	/* The widget accepts keyboard focus and forwards it to a descendant */
+	J_FOCUS_POLICY_SCOPE,
+
+} jwidget_focus_policy_t;
 
 /* jwidget_geometry: Built-in positioning and border geometry
 
@@ -143,14 +162,13 @@ typedef struct jwidget_geometry {
 
 } jwidget_geometry;
 
-/* Downwards key event: widget is notified of a key press that ocurred while it
-   had active focus.
+/* Key press event; the widget has active focus and a key was pressed.
     -> .data.key: Key event */
 extern uint16_t JWIDGET_KEY;
-/* Downwards focus-in event: the widget has just received focus */
-extern uint16_t JWIDGET_FOCUS_IN;
-/* Downwards focus-out event: the widget has just lost focus */
-extern uint16_t JWIDGET_FOCUS_OUT;
+/* The widget's focus state (either .focused or .active_focused) changed. */
+extern uint16_t JWIDGET_FOCUS_CHANGED;
+/* The widget is a scope and its target changed. */
+extern uint16_t JWIDGET_FOCUS_TARGET_CHANGED;
 
 //---
 // Creation and destruction
@@ -394,6 +412,53 @@ bool jwidget_needs_update(void *w);
    Unlike jscene_render(), this function does not automatically layout the
    widgets if there has been changes. */
 void jwidget_render(void *w, int x, int y);
+
+//---
+// Keyboard focus
+//---
+
+/* Change the widget's focus policy. This is usually done in the constructor
+   but can be done anytime. If the policy is changed to JWIDGET_FOCUS_REJECT
+   while the widget has focus, the focus will be lost. */
+void jwidget_set_focus_policy(void *w, jwidget_focus_policy_t fp);
+
+/* Check whether a widget is currently focused within its surrounding scope. */
+GINLINE static bool jwidget_has_focus(void *w)
+{
+	return ((jwidget *)w)->focused;
+}
+/* Check whether a widget is current in the key event propagation chain. */
+GINLINE static bool jwidget_has_active_focus(void *w)
+{
+	return ((jwidget *)w)->active_focused;
+}
+
+/* Change the target of a focus scope widget. */
+void jwidget_scope_set_target(void *fs, void *target);
+
+/* Get the target of a focus scope, NULL if none or not a scope. */
+GINLINE static jwidget *jwidget_scope_get_target(void *fs)
+{
+	return ((jwidget *)fs)->focus_scope_target;
+}
+
+/* Clear the target of a focus scope widget. */
+GINLINE static void jwidget_scope_clear_focus(void *fs)
+{
+	return jwidget_scope_set_target(fs, NULL);
+}
+
+/* Context function that returns the immediately surrounding scope that owns
+   this widget, NULL if there's none. Since jscene is a scope, in general there
+   should always be one. */
+jwidget *jwidgetctx_enclosing_focus_scope(void *w);
+
+/* Context function that gives w focus within its enclosing focus scope. */
+void jwidgetctx_grab_focus(void *w);
+
+/* Context function that drops the focus from w (if it has it) within its
+   enclosing focus scope. */
+void jwidgetctx_drop_focus(void *w);
 
 //---
 // Misc

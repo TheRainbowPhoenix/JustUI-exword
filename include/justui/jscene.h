@@ -21,8 +21,6 @@ typedef struct {
 
 	/* Location on screen */
 	int16_t x, y;
-	/* Widget with focus */
-	jwidget *focus;
 
    /* Circular event queue */
    jevent queue[JSCENE_QUEUE_SIZE];
