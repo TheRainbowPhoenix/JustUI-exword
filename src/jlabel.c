@@ -21,7 +21,7 @@ jlabel *jlabel_create(char const *text, void *parent)
 	jwidget_init(&l->widget, jlabel_type_id, parent);
 
 	l->block_halign = J_ALIGN_LEFT;
-	l->block_valign = J_ALIGN_MIDDLE;
+	l->block_valign = J_ALIGN_TOP;
 	l->text_align   = J_ALIGN_LEFT;
 
 	l->line_spacing = 0;
@@ -31,6 +31,7 @@ jlabel *jlabel_create(char const *text, void *parent)
 	l->wrap_mode = J_WRAP_NONE;
 	l->text = text;
 	l->owns_text = false;
+	l->wrapped_newline_spacing = false;
 
 	vec_init(&l->breaks_vec, sizeof *l->breaks);
 
@@ -188,6 +189,12 @@ void jlabel_set_font(jlabel *l, font_t const *font)
 	l->widget.dirty = 1;
 }
 
+void jlabel_set_wrapped_newline_spacing(jlabel *l, bool preserve)
+{
+	l->wrapped_newline_spacing = preserve;
+	l->widget.dirty = 1;
+}
+
 //---
 // Polymorphic widget operations
 //---
@@ -236,7 +243,7 @@ static void jlabel_poly_layout(void *l0)
 		/* Start of line */
 		add_break(l, str - l->text);
 
-		/* A "\n" forces a newline in all wrap omdes */
+		/* A "\n" forces a newline in all wrap modes */
 		char const *end_of_line = strchrnul(str, '\n');
 
 		/* Also consider word or letters boundaries */
@@ -257,14 +264,17 @@ static void jlabel_poly_layout(void *l0)
 			}
 		}
 
+		bool natural_break = (*end_of_line == '\n');
 		char const *next_start = end_of_line + (*end_of_line == '\n');
 
-		/* Skip trailing spaces on this line */
-		while(end_of_line > str && end_of_line[-1] == ' ')
-			end_of_line--;
-		/* Skip leading spaces on the next line */
-		while(next_start[0] == ' ')
-			next_start++;
+		if(!natural_break && !l->wrapped_newline_spacing) {
+			/* Skip trailing spaces on this line */
+			while(end_of_line > str && end_of_line[-1] == ' ')
+				end_of_line--;
+			/* Skip leading spaces on the next line */
+			while(next_start[0] == ' ')
+				next_start++;
+		}
 
 		add_break(l, end_of_line - l->text);
 

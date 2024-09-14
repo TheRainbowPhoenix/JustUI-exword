@@ -76,12 +76,16 @@ typedef struct {
 	   of line number n */
   DECLARE_VEC(uint16_t, breaks);
 
+	/* Block width (maximum length of a rendered line) */
+	uint16_t block_width;
 	/* Text wrapping mode */
 	enum jwrapmode wrap_mode;
 	/* Whether the text has been allocated by the label or supplied by user */
-	int8_t owns_text;
-	/* Block width (maximum length of a rendered line) */
-	uint16_t block_width;
+	bool owns_text                :1;
+	/* Whether to preserve spaces around line-wrapping newlines */
+	bool wrapped_newline_spacing  :1;
+
+	uint                          :5;
 
 	/* Color and font of text; if NULL, gint's default font is used */
 	int color;
@@ -130,5 +134,6 @@ void jlabel_set_line_spacing(jlabel *l, int line_spacing);
 void jlabel_set_wrap_mode(jlabel *l, jwrapmode mode);
 void jlabel_set_text_color(jlabel *l, int color);
 void jlabel_set_font(jlabel *l, font_t const *font);
+void jlabel_set_wrapped_newline_spacing(jlabel *l, bool preserve);
 
 #endif /* _J_JLABEL */
