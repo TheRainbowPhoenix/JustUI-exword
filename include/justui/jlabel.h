@@ -67,7 +67,7 @@ typedef struct {
 	jalign block_valign;
 	/* Text alignment */
 	jalign text_align;
-	/* Pixels of spacing between each line, in addition to font->height */
+	/* Pixels of spacing between lines, in addition to font->line_distance */
 	int8_t line_spacing;
 
 	/* Text to display */

@@ -24,7 +24,7 @@ jlabel *jlabel_create(char const *text, void *parent)
 	l->block_valign = J_ALIGN_MIDDLE;
 	l->text_align   = J_ALIGN_LEFT;
 
-	l->line_spacing = 1;
+	l->line_spacing = 0;
 	l->color = C_BLACK;
 	l->font = NULL;
 
@@ -295,7 +295,7 @@ static void jlabel_poly_render(void *l0, int x, int y)
 	/* Position the block vertically */
 
 	int lines = l->breaks_vec.size / 2;
-	int block_height = lines * (f->line_height + l->line_spacing) -
+	int block_height = lines * (f->line_distance + l->line_spacing) -
 		l->line_spacing;
 
 	if(l->block_valign == J_ALIGN_MIDDLE)
@@ -331,7 +331,7 @@ static void jlabel_poly_render(void *l0, int x, int y)
 		dtext_opt(x + dx, y, l->color, C_NONE, DTEXT_LEFT, DTEXT_TOP,
 			str, line_length);
 
-		y += f->line_height + l->line_spacing;
+		y += f->line_distance + l->line_spacing;
 		str = l->text + l->breaks[i];
 	}
 
