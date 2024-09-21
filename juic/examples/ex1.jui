@@ -37,7 +37,7 @@ fun stretch(x) = x;
 jwidget {
   fullscreen: true;
   @title jlabel { "title"; };
-  @stack jwidget {} | stack | stretch;
+  @stack jwidget {} |> stack |> stretch;
 
   // let x = 4;
   // jfkeys { x };
@@ -46,7 +46,7 @@ jwidget {
   // fun test(x, y, ...all) = x + y + sum(all);
 };
 
-rec jlabel2(str) = jwidget { text: str };
+rec jlabel2(s) = jwidget { text: s };
 
 jlabel2 {"Hello"};
 
@@ -107,3 +107,8 @@ my_widget {
   bg: none;
 };
 */
+
+let x: int = 4;
+fun fun2(x: int, y: str): int = x + len(y);
+fun fun3(x, y: str) = x + len(y);
+let alias2: (int, str) -> int = fun2;

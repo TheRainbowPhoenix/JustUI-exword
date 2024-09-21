@@ -233,7 +233,7 @@ class JuiLexer(NaiveRegexLexer):
     RE_INT      = r'0|[1-9][0-9]*|0b[0-1]+|0o[0-7]+|0[xX][0-9a-fA-F]+'
     # RE_FLOAT    = r'([0-9]*\.[0-9]+|[0-9]+\.[0-9]*|[0-9]+)([eE][+-]?{INT})?f?'
 
-    RE_KW       = r'\b(else|fun|if|let|rec|set|this|null|true|false)\b'
+    RE_KW       = r'\b(else|fun|if|let|rec|set|this|null|true|false|int|bool|float|str)\b'
     RE_IDENT    = r'[\w_][\w0-9_]*'
     RE_ATTR     = r'({})\s*(?:@({}))?\s*:'.format(RE_IDENT, RE_IDENT)
     RE_VAR      = r'\$(\.)?' + RE_IDENT
@@ -244,7 +244,7 @@ class JuiLexer(NaiveRegexLexer):
     RE_STRING   = r'["]((?:[^\\"]|\\"|\\n|\\t|\\\\)*)["]'
     RE_PUNCT    = r'\.\.\.|[.,:;=(){}]'
     # TODO: Extend operator language to allow custom operators?
-    RE_OP       = r'<\||>=|<=|!=|==|\|\||&&|<{|[|+*/%-<>!]'
+    RE_OP       = r'<\||\|>|->|>=|<=|!=|==|\|\||&&|<{|[|+*/%-<>!]'
 
     TOKEN_REGEX = [
         (r'[ \t\n]+', T.WS, None),
@@ -277,6 +277,7 @@ class JuiLexer(NaiveRegexLexer):
 class Node:
     T = enum.Enum("T", [
         "LIT", "IDENT", "OP", "THIS", "PROJ", "CALL", "IF", "SCOPE",
+        "BASE_TYPE", "FUN_TYPE",
         "RECORD", "REC_ATTR", "REC_VALUE",
         "LET_DECL", "FUN_DECL", "REC_DECL", "SET_STMT",
         "SCOPE_EXPR", "UNIT_TEST"])
@@ -373,7 +374,7 @@ class JuiParser(LL1Parser):
     #         | expr0 "<{" record_entry,* "}"  (record update)
     #         | expr0 "(" expr,* ")"           (function call)
     #         | expr0 "." ident                (projection, same prec as call)
-    @LL1Parser.binaryOpsLeft(mkOpNode, ["|"])
+    @LL1Parser.binaryOpsLeft(mkOpNode, ["|","|>"])
     @LL1Parser.binaryOpsLeft(mkOpNode, ["<|"])
     @LL1Parser.binaryOpsLeft(mkOpNode, ["||"])
     @LL1Parser.binaryOpsLeft(mkOpNode, ["&&"])
@@ -426,6 +427,23 @@ class JuiParser(LL1Parser):
     def expr(self):
         return self.expr2()
 
+    # type ::= int | bool | float | str
+    #        | (type,*) -> type
+    def type(self):
+        builtin_type_kws = ["int", "bool", "float", "str"]
+        t = self.expect([JuiLexer.T.KW, "("])
+        if t.type == JuiLexer.T.KW:
+            if t.value in builtin_type_kws:
+                return Node(Node.T.BASE_TYPE, [t.value])
+            else:
+                self.raiseErrorAt(t, "not a type keyword")
+        if t.type == "(":
+            args_types = self.separatedList(self.type, sep=",", term=")")
+            self.expect(")")
+            self.expect("->")
+            ret_type = self.type()
+            return Node(Node.T.FUN_TYPE, [args_types, ret_type])
+
     # record_literal ::= "{" record_entry,* "}"
     # record_entry ::= LABEL? ATTR? expr
     #                | let_decl
@@ -463,20 +481,32 @@ class JuiParser(LL1Parser):
             case _, _:
                 return Node(Node.T.REC_VALUE, [self.expr()])
 
-    # let_decl ::= "let" ident "=" expr
+    # let_decl ::= "let" ident (":" type)? "=" expr
     def let_decl(self):
         self.expectKeyword("let")
-        ident = self.expect(JuiLexer.T.IDENT).value
+        t_ident = self.expect([JuiLexer.T.IDENT, JuiLexer.T.ATTR])
+        if t_ident.type == JuiLexer.T.IDENT:
+            ident = t_ident.value
+            let_type = None
+        if t_ident.type == JuiLexer.T.ATTR:
+            ident = t_ident.value[0]
+            let_type = self.type()
         self.expect("=")
         expr = self.expr()
-        return Node(Node.T.LET_DECL, [ident, expr])
+        return Node(Node.T.LET_DECL, [ident, expr, let_type])
 
     # fun_rec_decl ::= ("fun" | "rec") ident "(" fun_rec_param,* ")" "=" expr
-    # fun_rec_param ::= "..."? ident
+    # fun_rec_param ::= "..."? ident (":" type)?
     def fun_rec_param(self):
         variadic = self.expect("...", optional=True) is not None
-        ident = self.expect(JuiLexer.T.IDENT).value
-        return (ident, variadic)
+        t_ident = self.expect([JuiLexer.T.IDENT, JuiLexer.T.ATTR])
+        if t_ident.type == JuiLexer.T.IDENT:
+            ident = t_ident.value
+            arg_type = None
+        if t_ident.type == JuiLexer.T.ATTR:
+            ident = t_ident.value[0]
+            arg_type = self.type()
+        return (ident, variadic, arg_type)
 
     def fun_rec_decl(self):
         t = self.expectKeyword("fun", "rec")
@@ -484,10 +514,15 @@ class JuiParser(LL1Parser):
         self.expect("(")
         params = self.separatedList(self.fun_rec_param, sep=",", term=")")
         self.expect(")")
+        if self.la.type == ":":
+            self.expect(":")
+            body_type = self.type()
+        else:
+            body_type = None
         self.expect("=")
         body = self.expr()
         return Node(Node.T.FUN_DECL if t == "fun" else Node.T.REC_DECL,
-            [ident, params, body])
+            [ident, params, body, body_type])
 
         # TODO: Check variadic param validity
 

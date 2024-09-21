@@ -241,10 +241,10 @@ class Context:
     def makeFunction(self, params: list[Tuple[str, bool]], body: Node) \
             -> Function:
         # Check validity of the variadic parameter specification
-        variadics = [i for i, (_, v) in enumerate(params) if v]
+        variadics = [i for i, (_, v, _) in enumerate(params) if v]
 
-        for (name, _) in params:
-            count = len([0 for (n, _) in params if n == name])
+        for (name, _, _) in params:
+            count = len([0 for (n, _, _) in params if n == name])
             if count > 1:
                 raise JuiStaticError(f"duplicate argument {name}")
 
@@ -261,7 +261,7 @@ class Context:
         # TODO: Make a full scope not just an expr
         return Function(closure = self.currentStateClosure(),
                         body = Node(Node.T.SCOPE_EXPR, [body]),
-                        params = [name for (name, v) in params if not v],
+                        params = [name for (name, v, _) in params if not v],
                         variadic = variadic)
 
     def makeRecordCtor(self, params: list[Tuple[str, bool]], body: Node) \
@@ -341,7 +341,7 @@ class Context:
                 requireType(x, juiIsUnpackable)
                 raise NotImplementedError("unpack operator o(x_x)o")
 
-            case Node.T.OP, ["|", X, F]:
+            case Node.T.OP, [("|"|"|>"), X, F]:
                 f = self.evalExpr(F)
                 requireType(f, juiIsCallable)
                 return self.evalCall(f, [X])
@@ -412,15 +412,17 @@ class Context:
 
     def execStmt(self, node: Node) -> JuiValue:
         match node.ctor, node.args:
-            case Node.T.LET_DECL, [name, X]:
+            case Node.T.LET_DECL, [name, X, let_type]:
                 self.addDefinition(name, self.evalExpr(X))
+                # TODO: Check type?
                 return None
 
-            case Node.T.FUN_DECL, [name, params, body]:
+            case Node.T.FUN_DECL, [name, params, body, body_type]:
                 self.addDefinition(name, self.makeFunction(params, body))
+                # TODO: Check type when called?
                 return None
 
-            case Node.T.REC_DECL, [name, params, body]:
+            case Node.T.REC_DECL, [name, params, body, body_type]:
                 self.addDefinition(name, self.makeRecordCtor(params, body))
                 return None
 
