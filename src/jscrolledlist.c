@@ -24,10 +24,20 @@ jscrolledlist *jscrolledlist_create(
     jwidget_set_stretch(l, 1, 1, false);
 
     l->frame = jframe_create(l);
+    if(!l->frame) {
+        free(l);
+        return NULL;
+    }
+
     jwidget_set_stretch(l->frame, 1, 1, false);
     jframe_set_align(l->frame, J_ALIGN_LEFT, J_ALIGN_TOP);
 
     l->list = jlist_create(info_function, paint_function, l->frame);
+    if(!l->list) {
+        jwidget_destroy(l->frame);
+        free(l);
+        return NULL;
+    }
     jwidget_set_stretch(l->list, 1, 1, false);
 
     return l;
