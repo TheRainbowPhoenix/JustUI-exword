@@ -21,14 +21,14 @@ compromise to work with polymorphic types in the C type system.
 and layout](layout.md)) and size constraints, geometry (margin, border,
 padding, background), and automatic repaint/relayout mechanisms.
 
-**`jlabel`** is a content widget that shows a single-line or multi-line piece
-of text. It supports various text alignment options (left/right/center), line
-wrapping (letter and word level), and a couple of graphical options.
-
 **`jscene`** is a special widget designed to be at the root of the widget tree.
 It provides event dispatching, automatic repaint and layout, keyboard input,
 and a generic input loop that is suitable for most GUI programs. See [Scenes
 and events](scene.md).
+
+**`jlabel`** is a content widget that shows a single-line or multi-line piece
+of text. It supports various text alignment options (left/right/center), line
+wrapping (letter and word level), and a couple of graphical options.
 
 **`jinput`** is a one-line input field. It supports direct key input, delayed
 and instant SHIFT and ALPHA modifiers, as well as modifier locking, with visual
@@ -43,6 +43,20 @@ user only provides a drawing function.
 screen. On fx-9860G, it uses an image to show keys; on fx-CG 50, it supports a
 string specification that looks like `"@JUMP;;#ROM;#RAM;#ILRAM;#ADDIN"`. It can
 change options dynamically.
+
+**`jframe`** is a scrolling frame. It contains a single child widget that's
+larger than the frame, scrolls it around, renders scrollbars, and ensures that
+the child widget's rendering is clipped to the frame.
+
+**`jlist`** and **`jscrolledlist`** are browsable lists. The list model is not
+forced; the user provides an info function (indicating which elements can be
+selected and triggered) and a paint function for rendering them. Custom
+rendering is possible at any point and delegate widgets for edition can also be
+specified. `jscrolledlist` is a `jlist` in a `jframe`, which provides scrolling
+and is usually what one wants.
+
+**`jfilebrowser`** is a `jlist`-like file browser which is used to open and
+save files in applications.
 
 ## Custom widgets and polymorphic operations
 
