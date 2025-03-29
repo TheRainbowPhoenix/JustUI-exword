@@ -4,105 +4,78 @@
 
 The _scene_ in JustUI is the component sitting at the root of the widget hierarchy. It handles all the dynamic aspects of the UI, including distributing/propagating events and managing keyboard focus among the widgets.
 
-Ideas...
+TODO...
 
-New keyboard focus system.
-1. Principle and conforming states
-   a. Widgets have a focus policy of FOCUS_ACCEPT, FOCUS_SCOPE or FOCUS_REJECT,
-      and two status flags FOCUSED and ACTIVE_FOCUSED whose valid combinations
-      describe 3 focus levels: *no focus* (F=0), *inactive focus* (F=1, AF=0),
-      and *active focus* (F=1, AF=1).
-   b. Each focus scope defines a region consisting of its subtree but excluding
-      itself and any children of other focus scopes. Up to one widget of policy
-      FOCUS_ACCEPT or FOCUS_SCOPE in the region may have its FOCUSED flag set,
-      called the *focus target* of the scope. The ACTIVE_FOCUSED flag of the
-      target is equal to the scope's.
-   c. Every focus scope fs induces a *focus chain* fc(fs), where
-        fc(w) = [] if w is FOCUS_ACCEPT or w is FOCUS_SCOPE with no target;
-        fc(w) = fc(target) + [target] if w is a scope with the named target.
-      Note that as a result of 1.b all elements of the chain have their FOCUSED
-      flag set and their ACTIVE_FOCUSED flags equal to that of fs.
-   d. jscene is a focus scope defined to have its ACTIVE_FOCUSED always set,
-      the only such widget that doesn't inherit this flag from a scope parent.
-      As such, the ACTIVE_FOCUSED flag identifies the focus chain of the scene.
-      jscene offers keyboard events to its focus chain, propagating rejected
-      events in list order.
-   X. The first (deepest) widget in the scene's focus chain is said to have
-      *strong focus*. Other widgets this chain are said to have *weak focus*.
-      -> TODO: Strong/weak focus is an informal substate of active focus and
-         may not be kept in the future.
-2. Operations
-   a. The core operation is a changing the target of a scope, which can be
-      initiated by any widget in the region through a widget-context call. The
-      consequences of this operation are as follow:
-      - The old target, if any, loses its FOCUSED and ACTIVE_FOCUSED flags. If
-        it's a scope and it had active focus, all widgets in its focus chain
-        also lose active focus.
-      - The new target, if any, gets its FOCUSED flag and the scope's value for
-        the ACTIVE_FOCUSED flag. If it's a focus scope and it gets active
-        focus, then its focus chain also gets active focus.
-      All widgets affected receive a FOCUS_CHANGED event and the scope itself
-      receives a FOCUS_TARGET_CHANGED event.
-   b. There is a widget-scene call to give a widget active focus. If the widget
-      has policy FOCUS_ACCEPT or FOCUS_SCOPE, this call walks up the scope
-      chain and assigns new targets until it reaches the scene. If the widget
-      has is NULL, this call just removes the surrounding scope's target.
-      TODO: If the widget is FOCUS_REJECT, clear scopes from that widget up
-            until reaching the scene.
-   X. There is a widget-context call to relinquish one's own focus within the
-      parent scope. This is intended to differ from 2.b in that scopes might
-      implement special logic for moving focus to a nearby widget.
-      -> TODO: Left unresolved for later
-3. Key-listener pattern
-   a. The operations described in 2.a and 2.b allow a "key-listener" pattern
-      where a widget "klw" (not the scene) receives keyboard events from its
-      potentially-focused descendants (i.e. inserts itself in the focus chain)
-      without impacting the focus mechanics of its surrounding scope "ssw".
-   b. The pattern consists of making klw a focus scope, and whenever it
-      receives a FOCUS_TARGET_CHANGED event that assigns a target, make klw
-      grab focus within ssw. This way, with regards to ssw, when focus moves:
-      - From within klw to within klw:
-          the grab is a no-op: OK.
-      - From within klw to outside it:
-          outside widget gets focus within ssw and klw does nothing: OK.
-      - From outside klw to within it:
-          inside widget gets focus in klw, klw gets focus in ssw: OK.
-      - From outside klw to outside it:
-          normal retargeting within ssw.
-   X. Should this be a built-in behavior?
+## Keyboard focus system
 
-4. Behavior of built-in widgets
-   a. `jfileselect`, `jinput`, `jlist` have policy FOCUS_ACCEPT
-   b. `jscene` has policy FOCUS_SCOPE
-   c. `jfkeys` has policy `FOCUS_REJECT` and must be given events manually
-   d. Widgets with a stack layout will try and give focus (within their
-      surrounding scope) to the current element. If the element is complex, it
-      should be a focus scope. Similarly, widgets with invisible children will
-      move focus around to their direct children as needed to make sure focus
-      remains on a visible child.
-      TODO: Implement stack layout logic
+### Principles: focus policies, focused widgets and active-focus widgets
 
-5. Implementation
-   a. Events are `FOCUS_CHANGED` when own FOCUSED and ACTIVE_FOCUSED flags have
-      changed, and `FOCUS_TARGET_CHANGED` for scopes when the target changes.
+Every widget has a focus policy, which can be:
+* `J_FOCUS_POLICY_REJECT`: The widget does not receive keyboard input and is ignored for the purposes of input handling (its children are not ignored though). This is the default and is usually overridden at creation by `jwidget_set_focus_policy()`.
+* `J_FOCUS_POLICY_ACCEPT`: The widget receives keyboard input and keeps it to itself, not allowing any children to get it. Children will not see any events unless the widget's event function decides to forward them.
+* `J_FOCUS_POLICY_SCOPE`: The widget can receive focus but also allows a child to get focus. In this case, events that the child is not interested in will be offered to the scope widget.
 
-NOTES:
-- Update focus flags when removing from parent
-- Focus events don't propagate but are replicated, which adds some complexity
-- Focus scopes could have background focus for jfkeys (left for later). Hard
-  part is this isn't specified by jfkeys.
-  Could tell users to add this to their main loop, or follow gscreen:
-    jevent e = jscene_run();
-    if(jwidget_event(fkeys, e)) continue;
-- Is there any sensible definition to "relinquishing" focus? In gintctl if e.g.
-  an jinput validates we want to take its focus away and put it back somewhere
-  sensible (i.e. the gscreen, not NULL, otherwise we don't have F-keys anymore)
-- Some functions from <jwidget-api.h> should go to <jwidget.h>
-- Functions from <jwidget.h> that require context or operate on the whole tree
-  should **really** be identified clearly. Everything by default should just
-  treat the widget as a box in a void.
-  -> Previously this was in jscene. Why not keep it that way?
+Additionally, widgets have three focus states defined by two status flags `FOCUSED` and `ACTIVE_FOCUSED`:
 
-## Keyboard focus and event propagation
+* No focus - `FOCUSED=0`
+* Inactive focus - `FOCUSED=1`, `ACTIVE_FOCUSED=0`
+* Active focus - `FOCUSED=1`, `ACTIVE_FOCUSED=1`
 
-TODO.
+Roughly speaking, active focus means the widget currently receives input, whereas inactive focus means the widget has focus within a parent that is inactive. For instance, an input field within a tab that is currently invisible would have inactive focus. If the tab becomes visible, the input field gets active focus. Inactive focus essentially remembers who had focus while certain parts of the interface are not being used.
+
+Each widget w with the `J_FOCUS_POLICY_SCOPE` policy defines a region called a *focus scope*, which is essentially the widgets whose focus is managed by w. This region consists of w's subtree, excluding w itself and any children of other focus scopes.
+
+The fact that w can transmit its focus to a child is formalized as follows. Within the scope, up to one widget with policy `J_FOCUS_POLICY_ACCEPT` or `J_FOCUS_POLICY_SCOPE` can have its `FOCUSED` flag set and this widget is called the *focus target* of the scope. The focus target has the same value for the `ACTIVE_FOCUSED` flag as w.
+
+If the focus target is also a scope, it may itself have a target. Thus, each scope induces a *focus chain* FC, defined mathematically by
+
+* `FC(w) = []` if w is not a scope or has no target;
+* `FC(w) = FC(target) + [target]` if w is a scope with the given target.
+
+The elements of the chain are exactly the children of w that have their `FOCUSED` flag set, and they all have the same value for `ACTIVE_FOCUSED` as w.
+
+`jscene`, where focus originates, is a scope and is defined to have its `ACTIVE_FOCUSED` flag set at all times (the only widget that doesn't inherit this flag from a scope parent).  Thus, the `ACTIVE_FOCUSED` flag identifies the focus chain of the scene. When given an event, `jscene` offers it to all of the elements of its focus chain, starting from the deepest children and then to the parents, until one accepts the event.
+
+TODO: Diagram! It's not straightforward.
+
+### Operations
+
+**Changing the target of a scope**
+
+Focus can moved by changing the target of a scope, with a widget-context function call. When this happens:
+
+- The old target, if any, loses its `FOCUSED` and `ACTIVE_FOCUSED` flags. If it's a scope and it had active focus, all widgets in its focus chain also lose active focus.
+- The new target, if any, gets its `FOCUSED` flag and the scope's value for the `ACTIVE_FOCUSED` flag. If it's a focus scope and it gets active focus, then its focus chain also gets active focus.
+
+All widgets affected receive a `FOCUS_CHANGED` event and the scope itself receives a `FOCUS_TARGET_CHANGED` event.
+
+**Giving a widget active focus**
+
+There is a scene function to give a widget active focus.
+- If the widget has policy `J_FOCUS_POLICY_ACCEPT` or `J_FOCUS_POLICY_SCOPE`, this functions gives active focus to all of its sopce ancestors until it reaches the scene.
+walks up the scope chain and assigns new targets until it reaches the scene.
+- If the widget is `NULL`, this call just removes the surrounding scope's target.
+- [TODO] If the widget has policy `J_FOCUS_POLICY__REJECT`, it clears scopes from that widget up until reaching the scene.
+
+**Relinquishing focus**
+
+[TODO] It is intended that there by a widget-context function to relinquish one's own focus within the parent scope. This is intended to allow scopes to implement special logic for moving focus to a nearby widget automatically.
+
+### Key-listener pattern
+
+The operations described above allow a "key-listener" pattern where a widget KL (not the scene) receives keyboard events from its potentially-focused descendants (i.e. inserts itself in the focus chain) without impacting the focus mechanics of its surrounding scope SS.
+
+The pattern consists of making KL a focus scope, and whenever it receives a `FOCUS_TARGET_CHANGED` event that assigns a target, make KL grab focus within SS. This way, with regards to SS, when focus moves:
+* From within KL to within KL: the grab is a no-op: OK.
+* From within KL to outside it: outside widget gets focus within SS and KL does nothing: OK.
+* From outside KL to within it: inside widget gets focus in KL, KL gets focus in SS: OK.
+* From outside KL to outside it: KL is not involved: OK.
+
+[TODO] Should this be a built-in behavior?
+
+## Behavior of built-in widgets
+
+- `jfileselect`, `jinput`, `jlist` have policy `J_FOCUS_POLICY_ACCEPT`
+- `jscene`, `jscrolledlist` have policy `J_FOCUS_POLICY_SCOPE`
+- `jfkeys` has policy `FOCUS_REJECT` and must be given events manually (awkward)
+- [TODO] Widgets with a stack layout will try and give focus (within their surrounding scope) to the current element. If the element is complex, it should be a focus scope. Similarly, widgets with invisible children will move focus around to their direct children as needed to make sure focus remains on a visible child.

@@ -236,6 +236,8 @@ void jwidget_remove_child(void *w0, void *child0)
 	J_CAST(w, child)
 	if(child->parent != w) return;
 
+	// TODO[jwidget_remove_child]: Remove focus
+
 	int write = 0;
 	int index = -1;
 
