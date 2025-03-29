@@ -10,6 +10,7 @@
 #include <gint/gint.h>
 #include <gint/drivers/t6k11.h>
 #include <gint/cpu.h>
+#include <gint/hardware.h>
 
 /* Type identifier for jscene */
 static int jscene_type_id = -1;
@@ -57,7 +58,7 @@ jscene *jscene_create(int x, int y, int w, int h, void *parent)
 	s->queue_first = 0;
 	s->queue_next = 0;
 	s->lost_events = 0;
-	s->mainmenu = true;
+	s->mainmenu = (gint[HWCALC] != HWCALC_FXCG100);
 	s->poweroff = true;
 	s->autopaint = false;
 
