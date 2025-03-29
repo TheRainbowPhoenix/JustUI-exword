@@ -41,7 +41,6 @@ typedef struct {
 /* Events */
 extern uint16_t JSCENE_NONE;
 extern uint16_t JSCENE_PAINT;
-extern uint16_t JSCENE_KEY; /* Deprecated, merged with JWIDGET_KEY */
 
 /* jscene_create(): Create a new scene at that specified screen position */
 jscene *jscene_create(int x, int y, int w, int h, void *parent);

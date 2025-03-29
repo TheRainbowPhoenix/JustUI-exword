@@ -16,7 +16,6 @@ static int jscene_type_id = -1;
 /* Events */
 uint16_t JSCENE_NONE;
 uint16_t JSCENE_PAINT;
-uint16_t JSCENE_KEY;
 
 /* Keyboard transformation for inputs in a jscene */
 static int jscene_repeater(int key, GUNUSED int duration, int count)
@@ -318,5 +317,4 @@ static void j_register_jscene(void)
 	jscene_type_id = j_register_widget(&type_jscene);
 	JSCENE_NONE = j_register_event();
 	JSCENE_PAINT = j_register_event();
-	JSCENE_KEY = JWIDGET_KEY;
 }
