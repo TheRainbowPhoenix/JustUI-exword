@@ -541,7 +541,7 @@ static bool jfileselect_poly_event(void *fs0, jevent e)
 				return true;
 			}
 		}
-		else if(key == KEY_EXE && fs->entries) {
+		else if((key == KEY_EXE || key == KEY_OK) && fs->entries) {
 			struct fileinfo *finfo = fs->entries;
 			struct fileinfo *i = &finfo[fs->cursor];
 

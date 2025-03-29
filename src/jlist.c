@@ -254,7 +254,7 @@ static bool jlist_poly_event(void *l0, jevent e)
 
     /* Triggering items */
 
-    if(key == KEY_EXE && l->items[l->cursor].triggerable) {
+    if((key == KEY_EXE || key == KEY_OK) && l->items[l->cursor].triggerable) {
         jevent e = { .type = JLIST_ITEM_TRIGGERED, .data = l->cursor };
         jwidget_emit(l, e);
         return true;

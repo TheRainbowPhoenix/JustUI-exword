@@ -268,7 +268,7 @@ static bool jinput_poly_event(void *i0, jevent e)
 
 		if(ev.type != KEYEV_DOWN) return false;
 
-		if(ev.key == KEY_EXE) {
+		if(ev.key == KEY_EXE || ev.key == KEY_OK) {
 			jevent e = { .source = i, .type = JINPUT_VALIDATED };
 			jwidget_emit(i, e);
 		}
