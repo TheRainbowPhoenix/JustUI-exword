@@ -48,6 +48,8 @@ typedef struct {
 
     /* Current cursor position (0 .. folder_entries-1) */
     int16_t cursor;
+    /* Index of the currently touch-clicked item, -1 none */
+    int touch_cursor;
     /* Current scroll position */
     int16_t scroll;
     /* Number of visible lines */

@@ -1,6 +1,7 @@
 #include <justui/jwidget.h>
 #include <justui/jwidget-api.h>
 #include <justui/jfileselect.h>
+#include <justui/config.h>
 
 #include <gint/display.h>
 #include <gint/gint.h>
@@ -75,6 +76,7 @@ jfileselect *jfileselect_create(void *parent)
 	fs->filter_function = jfileselect_default_filter;
 
 	fs->cursor = -1;
+	fs->touch_cursor = -1;
 	fs->scroll = 0;
 	fs->visible_lines = 0;
 
@@ -323,6 +325,7 @@ bool jfileselect_browse(jfileselect *fs, char const *path)
 	fs->selected_file = NULL;
 
 	fs->cursor = 0;
+	fs->touch_cursor = -1;
 	fs->scroll = 0;
 	stop_input(fs);
 	return ok;
@@ -355,6 +358,18 @@ bool jfileselect_default_filter(struct dirent const *ent)
 	if(!strcmp(ent->d_name, ".."))
 		return false;
 	return true;
+}
+
+static void jfileselect_select(jfileselect *fs, int index)
+{
+	/* Normalize out-of-bounds to -1 */
+	if(index < 0 || index >= fs->entry_count)
+		index = -1;
+	if(fs->cursor == index)
+		return;
+
+	fs->cursor = index;
+	fs->widget.update = 1;
 }
 
 //---
@@ -461,11 +476,40 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 		int sb_h = ch * fs->visible_lines / fs->entry_count;
 
 		drect(x + cw - fs->scrollbar_width, y + sb_y,
-		      x + cw - 1, y + sb_y + sb_h - 1,
-		      C_BLACK);
+			  x + cw - 1, y + sb_y + sb_h - 1,
+			  C_BLACK);
 	}
 
 	dfont(old_font);
+}
+
+static bool trigger_entry(jfileselect *fs)
+{
+	struct fileinfo *finfo = fs->entries;
+	struct fileinfo *i = &finfo[fs->cursor];
+
+	if(i->type == DT_DIR) {
+		char *child = path_down(fs->path, i->name);
+		if(child) {
+			load_folder(fs, child);
+			fs->cursor = 0;
+			fs->touch_cursor = -1;
+			fs->scroll = 0;
+			return true;
+		}
+	}
+	else if(fs->saveas && i->type == -1) {
+		start_input(fs);
+		return true;
+	}
+	else {
+		fs->selected_file = path_down(fs->path, i->name);
+		if(fs->selected_file) {
+			jwidget_emit(fs, (jevent){ .type = JFILESELECT_VALIDATED });
+			return true;
+		}
+	}
+	return false;
 }
 
 static bool jfileselect_poly_event(void *fs0, jevent e)
@@ -500,6 +544,37 @@ static bool jfileselect_poly_event(void *fs0, jevent e)
 
 	if(e.type == JWIDGET_KEY) {
 		key_event_t ev = e.key;
+
+#if J_CONFIG_TOUCH
+		bool accept_touch = !fs->folder_error && fs->entries && fs->entry_count;
+		if((ev.type == KEYEV_TOUCH_DOWN || ev.type == KEYEV_TOUCH_DRAG ||
+		    ev.type == KEYEV_TOUCH_UP) && accept_touch) {
+			int lx = ev.x - jwidget_absolute_content_x(fs);
+			int ly = ev.y - jwidget_absolute_content_y(fs);
+			uint w = jwidget_content_width(fs);
+			uint h = jwidget_content_height(fs);
+
+			int index = -1;
+			if((uint)lx < w && (uint)ly < h) {
+				int line_height = fs->font->line_height + fs->line_spacing;
+				index = (ly / line_height) + fs->scroll;
+				if((uint)index >= (uint)fs->entry_count)
+					index = -1;
+			}
+
+			if(ev.type == KEYEV_TOUCH_DOWN && index >= 0) {
+				jfileselect_select(fs, index);
+				fs->touch_cursor = index;
+			}
+			if(ev.type == KEYEV_TOUCH_DRAG && index >= 0)
+				jfileselect_select(fs, index);
+			if(ev.type == KEYEV_TOUCH_UP && index >= 0 &&
+			   index == fs->touch_cursor)
+				trigger_entry(fs);
+			return true;
+		}
+#endif
+
 		if(ev.type != KEYEV_DOWN && ev.type != KEYEV_HOLD)
 			return false;
 		int key = ev.key;
@@ -537,34 +612,14 @@ static bool jfileselect_poly_event(void *fs0, jevent e)
 			if(parent) {
 				load_folder(fs, parent);
 				fs->cursor = 0;
+				fs->touch_cursor = -1;
 				fs->scroll = 0;
 				return true;
 			}
 		}
 		else if((key == KEY_EXE || key == KEY_OK) && fs->entries) {
-			struct fileinfo *finfo = fs->entries;
-			struct fileinfo *i = &finfo[fs->cursor];
-
-			if(i->type == DT_DIR) {
-				char *child = path_down(fs->path, i->name);
-				if(child) {
-					load_folder(fs, child);
-					fs->cursor = 0;
-					fs->scroll = 0;
-					return true;
-				}
-			}
-			else if(fs->saveas && i->type == -1) {
-				start_input(fs);
+			if(trigger_entry(fs))
 				return true;
-			}
-			else {
-				fs->selected_file = path_down(fs->path, i->name);
-				if(fs->selected_file) {
-					jwidget_emit(fs,(jevent){ .type = JFILESELECT_VALIDATED });
-					return true;
-				}
-			}
 		}
 	}
 
