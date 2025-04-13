@@ -567,6 +567,38 @@ void jwidget_layout(void *root0)
 	jwidget_layout_apply(root);
 }
 
+int jwidget_absolute_x(void *w0)
+{
+	J_CAST(w)
+	return w ? w->x + jwidget_absolute_x(w->parent) : 0;
+}
+
+int jwidget_absolute_y(void *w0)
+{
+	J_CAST(w)
+	return w ? w->y + jwidget_absolute_y(w->parent) : 0;
+}
+
+int jwidget_absolute_content_x(void *w0)
+{
+	J_CAST(w)
+	if(!w)
+		return 0;
+	jwidget_geometry const *g = jwidget_geometry_r(w);
+	return jwidget_absolute_content_x(w->parent) +
+	       w->x + g->margin.left + g->border.left + g->padding.left;
+}
+
+int jwidget_absolute_content_y(void *w0)
+{
+	J_CAST(w)
+	if(!w)
+		return 0;
+	jwidget_geometry const *g = jwidget_geometry_r(w);
+	return jwidget_absolute_content_y(w->parent) +
+	       w->y + g->margin.top + g->border.top + g->padding.top;
+}
+
 int jwidget_content_width(void *w0)
 {
 	J_CAST(w)

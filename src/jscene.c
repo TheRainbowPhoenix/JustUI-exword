@@ -62,6 +62,9 @@ jscene *jscene_create(int x, int y, int w, int h, void *parent)
 	s->poweroff = true;
 	s->autopaint = false;
 
+	s->touch_last_x = -1;
+	s->touch_last_y = -1;
+
 	/* Prepare first layout/paint operation */
 	s->widget.dirty = 1;
 
@@ -84,10 +87,94 @@ jscene *jscene_owning(void *w0)
 	return NULL;
 }
 
-void jscene_render(jscene *scene)
+void jscene_render(jscene *s)
 {
-	jwidget_layout(scene);
-	jwidget_render(scene, scene->x, scene->y);
+	jwidget_layout(s);
+	jwidget_render(s, s->x, s->y);
+
+#if J_CONFIG_TOUCH_INSPECTOR
+	if(s->touch_last_x >= 0 && s->touch_last_y >= 0) {
+		jwidget *w =
+			jscene_widget_at(s, s->touch_last_x, s->touch_last_y, true);
+		if(w) {
+			int x1 = jwidget_absolute_content_x(w);
+			int y1 = jwidget_absolute_content_y(w);
+			int x2 = x1 + jwidget_content_width(w) - 1;
+			int y2 = y1 + jwidget_content_height(w) - 1;
+			drect_border(x1, y1, x2, y2, C_NONE, 1, C_RED);
+
+			dprint_opt(DWIDTH-1, 0, C_WHITE, C_RED, DTEXT_RIGHT, DTEXT_TOP,
+				"%s", jwidget_type(w));
+		}
+	}
+#endif
+}
+
+/* Find sub-widget based on w-local coordinates. */
+static jwidget *jscene_widget_at_rec(
+	jwidget *w, int x, int y, bool content_only, bool visible_only)
+{
+	if(!w)
+		return NULL;
+	jwidget *found;
+
+	jwidget_geometry const *g = jwidget_geometry_r(w);
+    int xC = g->margin.left + g->border.left + g->padding.left;
+    int yC = w->y + g->margin.top + g->border.top + g->padding.top;
+    uint wC = jwidget_content_width(w);
+    uint hC = jwidget_content_height(w);
+	uint wF = jwidget_full_width(w);
+	uint hF = jwidget_full_height(w);
+
+	/* Check if we intersect w at all */
+	bool intersects;
+	if(content_only)
+		intersects = ((uint)(x - xC) < wC) && ((uint)(y - yC) < hC);
+	else
+		intersects = (uint)x < wF && (uint)y < hF;
+	if(!intersects)
+		return NULL;
+
+	/* If we have a stacked widget, only consider the visible child */
+	jlayout_stack *stack;
+	if((stack = jlayout_get_stack(w))) {
+		if(stack->active < 0)
+			return w;
+		jwidget *child = w->children[stack->active];
+		found = jscene_widget_at_rec(child, x - xC, y - yC, content_only,
+			visible_only);
+		return found ? found : w;
+	}
+
+	/* Try to find a descendant of a floating child that intersects... */
+	for(int k = 0; k < w->child_count; k++) {
+		jwidget *child = w->children[k];
+		if(child->visible >= visible_only && child->floating) {
+			found = jscene_widget_at_rec(child, x - xC, y - yC, content_only,
+				visible_only);
+			if(found)
+				return found;
+		}
+	}
+
+	/* ... or a descendant of a non-floating child */
+	for(int k = 0; k < w->child_count; k++) {
+		jwidget *child = w->children[k];
+		if(child->visible >= visible_only && !child->floating) {
+			found = jscene_widget_at_rec(child, x - xC, y - yC, content_only,
+				visible_only);
+			if(found)
+				return found;
+		}
+	}
+
+	/* If no descendants do, then the best match is w itself. */
+	return w;
+}
+
+jwidget *jscene_widget_at(jscene *scene, int x, int y, bool content_only)
+{
+	return jscene_widget_at_rec(&scene->widget, x, y, content_only, true);
 }
 
 //---
@@ -260,6 +347,19 @@ static jevent poll_next_unhandled_event(keydev_t *d, jscene *s)
 
 	/* Then try to dequeue keyboard events, if there are any. */
 	while((k = keydev_read(d, false, NULL)).type != KEYEV_NONE) {
+		/* Keep track of where the touch cursor was last seen. */
+#if J_CONFIG_TOUCH_INSPECTOR
+		if(k.type == KEYEV_TOUCH_DOWN || k.type == KEYEV_TOUCH_DRAG) {
+			s->touch_last_x = k.x - s->x;
+			s->touch_last_y = k.y - s->y;
+			s->widget.update = true;
+		}
+		if(k.type == KEYEV_TOUCH_UP) {
+			s->touch_last_x = -1;
+			s->touch_last_y = -1;
+			s->widget.update = true;
+		}
+#endif
 		/* Auto return-to-menu */
 		if(k.type == KEYEV_DOWN && k.key == KEY_MENU && !k.shift && !k.alpha) {
 			if(s->mainmenu) {

@@ -8,6 +8,7 @@
 #include <justui/defs.h>
 #include <justui/jwidget.h>
 #include <justui/jevent.h>
+#include <justui/config.h>
 
 #define JSCENE_QUEUE_SIZE 32
 
@@ -35,6 +36,9 @@ typedef struct {
    bool poweroff;
    /* Whether jscene_run() will autopaint */
    bool autopaint;
+
+   /* Last coordinates a touch cursor was seen at */
+   int16_t touch_last_x, touch_last_y;
 
 } jscene;
 
@@ -64,6 +68,21 @@ jscene *jscene_owning(void *widget);
    Layout is lazy and performed only if needed. The scene is rendered at its
    (x,y) point. */
 void jscene_render(jscene *scene);
+
+/* jscene_widget_at(): Find top-most widget at specified location
+
+   Returns the top-most widget at the given scene-local location.
+   * If there is no widget in the scene covering this location, returns NULL.
+   * If there is exactly one, returns it.
+   * If there are multiple, this function returns the first found by depth-
+     first search where children are enumerated floating first, non-floating
+     next, and increasing within child index order within each group.
+   * For widgets with a stacked layout, only the active child is considered.
+
+   If content_only is set, this function only intersects with the content box.
+   Otherwise, an intersection with the full box (padding, border and margin
+   included) is performed. */
+jwidget *jscene_widget_at(jscene *scene, int x, int y, bool content_only);
 
 //---
 // Events sent from the scene to the user

@@ -339,6 +339,18 @@ bool jwidget_layout_dirty(void *scene_root);
    need to keep the layout up-to-date before doing it. */
 void jwidget_layout(void *scene_root);
 
+/* jwidget_absolute_x(): Absolute x-position of a widget
+   jwidget_absolute_y(): Absolute y-position of a widget
+   jwidget_absolute_content_x(): Absolute x-position of a widget's content box
+   jwidget_absolute_content_y(): Absolute y-position of a widget's content box
+
+   These are actually based on the root's coordinates, which are typically 0,0
+   with a full-screen scene. */
+int jwidget_absolute_x(void *w);
+int jwidget_absolute_y(void *w);
+int jwidget_absolute_content_x(void *w);
+int jwidget_absolute_content_y(void *w);
+
 /* jwidget_width(): With of a widget's content box
    jwidget_height(): Height of a widget's content box
 
