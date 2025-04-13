@@ -236,6 +236,70 @@ void jscene_set_autopaint(jscene *scene, bool autopaint)
 	scene->autopaint = autopaint;
 }
 
+/* Poll events until an unhandled event is found, and return it. If there are
+   no more, return an event of type JSCENE_NONE. */
+static jevent poll_next_unhandled_event(keydev_t *d, jscene *s)
+{
+	jevent e;
+	key_event_t k;
+
+	/* Start by dequeuing GUI events. We want to properly propagate all the
+	   consequences of a single input event before reading others. */
+	while((e = jscene_read_event(s)).type != JSCENE_NONE) {
+		/* Handle PAINT events when autopaint is on. */
+		if(e.type == JSCENE_PAINT && s->autopaint) {
+			jscene_render(s);
+			dupdate();
+			continue;
+		}
+		/* Send the rest of the events through the scene. If they're not
+		   handled internally, then to the user. */
+		if(e.type != JSCENE_NONE && !jscene_process_event(s, e))
+			return e;
+	}
+
+	/* Then try to dequeue keyboard events, if there are any. */
+	while((k = keydev_read(d, false, NULL)).type != KEYEV_NONE) {
+		/* Auto return-to-menu */
+		if(k.type == KEYEV_DOWN && k.key == KEY_MENU && !k.shift && !k.alpha) {
+			if(s->mainmenu) {
+				gint_osmenu();
+				jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
+				continue;
+			}
+		}
+		/* Handle poweroff */
+		if(k.type == KEYEV_DOWN && k.key == KEY_ACON && k.shift && !k.alpha) {
+			if(s->poweroff) {
+				gint_poweroff(true);
+				jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
+				continue;
+			}
+		}
+		/* Handle backlight */
+#if GINT_HW_FX
+		if(k.type == KEYEV_DOWN && k.key == KEY_OPTN && k.shift && !k.alpha) {
+			t6k11_backlight(-1);
+			continue;
+		}
+#endif
+		/* Run through the getkey feature function */
+		getkey_feature_t feat = getkey_feature_function();
+		if((k.type == KEYEV_DOWN || k.type == KEYEV_HOLD) && feat && feat(k))
+			continue;
+		/* Finally, send through the scene; if it comes back, send to user. */
+		if(k.type != KEYEV_NONE && !jscene_process_key_event(s, k)) {
+			e.type = JWIDGET_KEY;
+			e.key = k;
+			return e;
+		}
+	}
+
+	/* Not a single event could be found. */
+	e.type = JSCENE_NONE;
+	return e;
+}
+
 jevent jscene_run(jscene *s)
 {
 	keydev_t *d = keydev_std();
@@ -244,57 +308,18 @@ jevent jscene_run(jscene *s)
 
 	jevent e;
 	while(1) {
-		/* Create repaint events (also handle relayout if needed) */
+		e = poll_next_unhandled_event(d, s);
+		if(e.type != JSCENE_NONE)
+			break;
+
+		/* When out of events to handle, consider whether to relayout and/or
+		   repaint the scene. */
 		if(jwidget_layout_dirty(s) || jwidget_needs_update(s)) {
 			jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
-		}
-
-		/* Queued GUI events */
-		e = jscene_read_event(s);
-		if(e.type == JSCENE_PAINT && s->autopaint) {
-			jscene_render(s);
-			dupdate();
 			continue;
 		}
-		if(e.type != JSCENE_NONE && !jscene_process_event(s, e)) break;
 
-		/* Queued keyboard events */
-		key_event_t k = keydev_read(d, false, NULL);
-
-		if(k.type == KEYEV_DOWN && k.key == KEY_MENU && !k.shift && !k.alpha) {
-			if(s->mainmenu) {
-				gint_osmenu();
-				jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
-				continue;
-			}
-		}
-		if(k.type == KEYEV_DOWN && k.key == KEY_ACON && k.shift && !k.alpha) {
-			if(s->poweroff) {
-				gint_poweroff(true);
-				jscene_queue_event(s, (jevent){ .type = JSCENE_PAINT });
-				continue;
-			}
-		}
-		// TODO: Temporarily disabled to allow build-fxg3a, will put back when
-		// gint's generic video interface is available
-/*		#ifdef FX9860G
-		if(k.type == KEYEV_DOWN && k.key == KEY_OPTN && k.shift && !k.alpha) {
-			t6k11_backlight(-1);
-			continue;
-		}
-		#endif */
-
-		getkey_feature_t feat = getkey_feature_function();
-		if((k.type == KEYEV_DOWN || k.type == KEYEV_HOLD) && feat && feat(k))
-			continue;
-
-		if(k.type != KEYEV_NONE && !jscene_process_key_event(s, k)) {
-			e.type = JWIDGET_KEY;
-			e.key = k;
-			break;
-		}
-
-		// TODO: Should only sleep when out of events!
+		/* Now we're fully out, sleep and wait for some more. */
 		sleep();
 	}
 
