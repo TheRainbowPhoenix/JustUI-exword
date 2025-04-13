@@ -434,6 +434,9 @@ void jwidget_render(void *w, int x, int y);
    while the widget has focus, the focus will be lost. */
 void jwidget_set_focus_policy(void *w, jwidget_focus_policy_t fp);
 
+/* Check whether a widget accepts focus. */
+bool jwidget_accepts_focus(void *w);
+
 /* Check whether a widget is currently focused within its surrounding scope. */
 GINLINE static bool jwidget_has_focus(void *w)
 {

@@ -283,6 +283,16 @@ void jscene_show_and_focus(jscene *scene, void *w0)
 
 bool jscene_process_key_event(jscene *scene, key_event_t event)
 {
+	/* If the event is a touch down, start by moving the focus. */
+#if J_CONFIG_TOUCH
+	if(event.type == KEYEV_TOUCH_DOWN) {
+		jwidget *w = jscene_widget_at(scene, event.x - scene->x,
+			event.y - scene->y, true);
+		if(w && jwidget_accepts_focus(w))
+			jscene_set_focused_widget(scene, w);
+	}
+#endif
+
 	jwidget *candidate = jscene_focused_widget(scene);
 	jevent e = { .type = JWIDGET_KEY, .key = event };
 

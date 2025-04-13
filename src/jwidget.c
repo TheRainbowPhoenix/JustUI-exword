@@ -753,6 +753,13 @@ void jwidget_set_focus_policy(void *w0, jwidget_focus_policy_t fp)
 	w->focus_policy = fp;
 }
 
+bool jwidget_accepts_focus(void *w0)
+{
+	J_CAST(w)
+   return w->focus_policy == J_FOCUS_POLICY_SCOPE ||
+          w->focus_policy == J_FOCUS_POLICY_ACCEPT;
+}
+
 static void notify_focus_changed(jwidget *w)
 {
 	jevent e;

@@ -1,6 +1,7 @@
 #include <justui/jwidget.h>
 #include <justui/jwidget-api.h>
 #include <justui/jlist.h>
+#include <justui/config.h>
 #include "util.h"
 
 #include <gint/display.h>
@@ -38,6 +39,7 @@ jlist *jlist_create(jlist_item_info_function info_function,
     l->info_function = info_function;
     l->paint_function = paint_function;
     l->cursor = -1;
+    l->touch_cursor = -1;
     l->user = NULL;
     return l;
 }
@@ -165,6 +167,25 @@ jrect jlist_selected_region(jlist *l)
 // Polymorphic widget operations
 //---
 
+static int item_index_at(void *l0, int ly)
+{
+    jlist *l = l0;
+    int y = 0;
+
+    for(int i = 0; i < l->item_count; i++) {
+        jlist_item_info *info = &l->items[i];
+        int h = info->delegate
+            ? jwidget_full_height(info->delegate)
+            : info->natural_height;
+
+        if(ly >= y && ly < y + h)
+            return i;
+        y += h;
+    }
+
+    return -1;
+}
+
 static void jlist_poly_csize(void *l0)
 {
     jlist *l = l0;
@@ -224,10 +245,38 @@ static bool jlist_poly_event(void *l0, jevent e)
 {
     jlist *l = l0;
 
+    if(e.type == JWIDGET_FOCUS_CHANGED && !jwidget_has_active_focus(l))
+        l->touch_cursor = -1;
+
     if(e.type != JWIDGET_KEY || l->cursor < 0)
         return false;
 
     key_event_t ev = e.key;
+
+#if J_CONFIG_TOUCH
+    if(ev.type == KEYEV_TOUCH_DOWN || ev.type == KEYEV_TOUCH_DRAG ||
+       ev.type == KEYEV_TOUCH_UP) {
+        int lx = ev.x - jwidget_absolute_content_x(l);
+        int ly = ev.y - jwidget_absolute_content_y(l);
+        uint w = jwidget_content_width(l);
+        uint h = jwidget_content_height(l);
+        int index = ((uint)lx < w && (uint)ly < h) ? item_index_at(l, ly) : -1;
+
+        if(ev.type == KEYEV_TOUCH_DOWN && index >= 0) {
+            jlist_select(l, index);
+            l->touch_cursor = jlist_selected_item(l);
+        }
+        if(ev.type == KEYEV_TOUCH_DRAG && index >= 0)
+            jlist_select(l, index);
+        if(ev.type == KEYEV_TOUCH_UP && index >= 0 && index == l->touch_cursor) {
+            jevent e = { .type = JLIST_ITEM_TRIGGERED,
+                         .data = l->touch_cursor };
+            jwidget_emit(l, e);
+        }
+        return true;
+    }
+#endif
+
     if(ev.type != KEYEV_DOWN && ev.type != KEYEV_HOLD)
         return false;
 

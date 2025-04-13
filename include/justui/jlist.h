@@ -77,6 +77,8 @@ typedef struct jlist {
 
     /* Currently selected item, -1 if none */
     int cursor;
+    /* Index of the currently touch-clicked item, -1 none */
+    int touch_cursor;
     /* User data pointer */
     void *user;
 

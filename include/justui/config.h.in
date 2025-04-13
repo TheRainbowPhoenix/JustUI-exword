@@ -16,6 +16,6 @@
 #endif
 
 /* Set to 1 to enable a touch-following widget inspector. */
-#define J_CONFIG_TOUCH_INSPECTOR (J_CONFIG_TOUCH && 1)
+#define J_CONFIG_TOUCH_INSPECTOR (J_CONFIG_TOUCH && 0)
 
 #endif /* _JUSTUI_CONFIG */
