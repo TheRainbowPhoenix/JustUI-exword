@@ -97,10 +97,10 @@ void jscene_render(jscene *s)
 		jwidget *w =
 			jscene_widget_at(s, s->touch_last_x, s->touch_last_y, true);
 		if(w) {
-			int x1 = jwidget_absolute_content_x(w);
-			int y1 = jwidget_absolute_content_y(w);
-			int x2 = x1 + jwidget_content_width(w) - 1;
-			int y2 = y1 + jwidget_content_height(w) - 1;
+			int x1 = jwidget_absolute_padding_x(w);
+			int y1 = jwidget_absolute_padding_y(w);
+			int x2 = x1 + jwidget_padding_width(w) - 1;
+			int y2 = y1 + jwidget_padding_height(w) - 1;
 			drect_border(x1, y1, x2, y2, C_NONE, 1, C_RED);
 
 			dprint_opt(DWIDTH-1, 0, C_WHITE, C_RED, DTEXT_RIGHT, DTEXT_TOP,
@@ -112,24 +112,31 @@ void jscene_render(jscene *s)
 
 /* Find sub-widget based on w-local coordinates. */
 static jwidget *jscene_widget_at_rec(
-	jwidget *w, int x, int y, bool content_only, bool visible_only)
+	jwidget *w, int x, int y, bool exclude_mp, bool visible_only)
 {
 	if(!w)
 		return NULL;
 	jwidget *found;
 
 	jwidget_geometry const *g = jwidget_geometry_r(w);
+	/* Content box (this is what children's xy are measured against) */
     int xC = g->margin.left + g->border.left + g->padding.left;
-    int yC = w->y + g->margin.top + g->border.top + g->padding.top;
+    int yC = g->margin.top + g->border.top + g->padding.top;
     uint wC = jwidget_content_width(w);
     uint hC = jwidget_content_height(w);
+    /* Padding box */
+    int xP = xC - g->padding.left;
+    int yP = yC - g->padding.top;
+    uint wP = wC + g->padding.left + g->padding.right;
+    uint hP = hC + g->padding.top + g->padding.bottom;
+    /* Full box (implicitly starts at 0,0) */
 	uint wF = jwidget_full_width(w);
 	uint hF = jwidget_full_height(w);
 
 	/* Check if we intersect w at all */
 	bool intersects;
-	if(content_only)
-		intersects = ((uint)(x - xC) < wC) && ((uint)(y - yC) < hC);
+	if(exclude_mp)
+		intersects = ((uint)(x - xP) < wP) && ((uint)(y - yP) < hP);
 	else
 		intersects = (uint)x < wF && (uint)y < hF;
 	if(!intersects)
@@ -141,8 +148,8 @@ static jwidget *jscene_widget_at_rec(
 		if(stack->active < 0)
 			return w;
 		jwidget *child = w->children[stack->active];
-		found = jscene_widget_at_rec(child, x - xC, y - yC, content_only,
-			visible_only);
+		found = jscene_widget_at_rec(child, x - xC - child->x,
+			y - yC - child->y, exclude_mp, visible_only);
 		return found ? found : w;
 	}
 
@@ -150,8 +157,8 @@ static jwidget *jscene_widget_at_rec(
 	for(int k = 0; k < w->child_count; k++) {
 		jwidget *child = w->children[k];
 		if(child->visible >= visible_only && child->floating) {
-			found = jscene_widget_at_rec(child, x - xC, y - yC, content_only,
-				visible_only);
+			found = jscene_widget_at_rec(child, x - xC - child->x,
+				y - yC - child->y, exclude_mp, visible_only);
 			if(found)
 				return found;
 		}
@@ -161,8 +168,8 @@ static jwidget *jscene_widget_at_rec(
 	for(int k = 0; k < w->child_count; k++) {
 		jwidget *child = w->children[k];
 		if(child->visible >= visible_only && !child->floating) {
-			found = jscene_widget_at_rec(child, x - xC, y - yC, content_only,
-				visible_only);
+			found = jscene_widget_at_rec(child, x - xC - child->x,
+				y - yC - child->y, exclude_mp, visible_only);
 			if(found)
 				return found;
 		}
@@ -172,9 +179,9 @@ static jwidget *jscene_widget_at_rec(
 	return w;
 }
 
-jwidget *jscene_widget_at(jscene *scene, int x, int y, bool content_only)
+jwidget *jscene_widget_at(jscene *scene, int x, int y, bool exclude_mp)
 {
-	return jscene_widget_at_rec(&scene->widget, x, y, content_only, true);
+	return jscene_widget_at_rec(&scene->widget, x, y, exclude_mp, true);
 }
 
 //---

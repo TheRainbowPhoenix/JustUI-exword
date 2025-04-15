@@ -79,10 +79,10 @@ void jscene_render(jscene *scene);
      next, and increasing within child index order within each group.
    * For widgets with a stacked layout, only the active child is considered.
 
-   If content_only is set, this function only intersects with the content box.
-   Otherwise, an intersection with the full box (padding, border and margin
-   included) is performed. */
-jwidget *jscene_widget_at(jscene *scene, int x, int y, bool content_only);
+   If exclude_mp is set, this function only intersects with the content and
+   padding box, excluding margins and borders. Otherwise, an intersection with
+   the full box (padding, border and margin included) is performed. */
+jwidget *jscene_widget_at(jscene *scene, int x, int y, bool exclude_mp);
 
 //---
 // Events sent from the scene to the user

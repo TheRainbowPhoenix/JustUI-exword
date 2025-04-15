@@ -570,13 +570,39 @@ void jwidget_layout(void *root0)
 int jwidget_absolute_x(void *w0)
 {
 	J_CAST(w)
-	return w ? w->x + jwidget_absolute_x(w->parent) : 0;
+	if(!w)
+		return 0;
+	jwidget_geometry const *g = jwidget_geometry_r(w);
+	return jwidget_absolute_content_x(w) -
+		g->padding.left - g->border.left - g->margin.left;
 }
 
 int jwidget_absolute_y(void *w0)
 {
 	J_CAST(w)
-	return w ? w->y + jwidget_absolute_y(w->parent) : 0;
+	if(!w)
+		return 0;
+	jwidget_geometry const *g = jwidget_geometry_r(w);
+	return jwidget_absolute_content_y(w) -
+		g->padding.top - g->border.top - g->margin.top;
+}
+
+int jwidget_absolute_padding_x(void *w0)
+{
+	J_CAST(w)
+	if(!w)
+		return 0;
+	jwidget_geometry const *g = jwidget_geometry_r(w);
+	return jwidget_absolute_content_x(w) - g->padding.left;
+}
+
+int jwidget_absolute_padding_y(void *w0)
+{
+	J_CAST(w)
+	if(!w)
+		return 0;
+	jwidget_geometry const *g = jwidget_geometry_r(w);
+	return jwidget_absolute_content_y(w) - g->padding.top;
 }
 
 int jwidget_absolute_content_x(void *w0)
@@ -615,6 +641,24 @@ int jwidget_content_height(void *w0)
 
 	return w->h - g->margin.top    - g->border.top    - g->padding.top
 	            - g->margin.bottom - g->border.bottom - g->padding.bottom;
+}
+
+int jwidget_padding_width(void *w0)
+{
+	J_CAST(w)
+	jwidget_geometry const *g = jwidget_geometry_r(w);
+
+	return w->w - g->margin.left  - g->border.left
+	            - g->margin.right - g->border.right;
+}
+
+int jwidget_padding_height(void *w0)
+{
+	J_CAST(w)
+	jwidget_geometry const *g = jwidget_geometry_r(w);
+
+	return w->h - g->margin.top    - g->border.top
+	            - g->margin.bottom - g->border.bottom;
 }
 
 int jwidget_full_width(void *w0)

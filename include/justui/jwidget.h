@@ -341,6 +341,8 @@ void jwidget_layout(void *scene_root);
 
 /* jwidget_absolute_x(): Absolute x-position of a widget
    jwidget_absolute_y(): Absolute y-position of a widget
+   jwidget_absolute_padding_x(): Absolute x-position of a widget's padding box
+   jwidget_absolute_padding_y(): Absolute y-position of a widget's padding box
    jwidget_absolute_content_x(): Absolute x-position of a widget's content box
    jwidget_absolute_content_y(): Absolute y-position of a widget's content box
 
@@ -348,6 +350,8 @@ void jwidget_layout(void *scene_root);
    with a full-screen scene. */
 int jwidget_absolute_x(void *w);
 int jwidget_absolute_y(void *w);
+int jwidget_absolute_padding_x(void *w);
+int jwidget_absolute_padding_y(void *w);
 int jwidget_absolute_content_x(void *w);
 int jwidget_absolute_content_y(void *w);
 
@@ -360,6 +364,17 @@ int jwidget_absolute_content_y(void *w);
    layout is not up-to-date will return funny results. */
 int jwidget_content_width(void *w);
 int jwidget_content_height(void *w);
+
+/* jwidget_width(): With of a widget's padding box
+   jwidget_height(): Height of a widget's padding box
+
+   These functions return the size of the padding box of a widget, which
+   includes the content and padding. These are the dimensions that appear as
+   the widget's size when there is a background. These dimensions are known
+   only after layout; calling these functions when the layout is not up-to-date
+   will return funny results. */
+int jwidget_padding_width(void *w);
+int jwidget_padding_height(void *w);
 
 /* jwidget_full_width(): Width of a widget's margin box
    jwidget_full_height(): Height of a widget's margin box
