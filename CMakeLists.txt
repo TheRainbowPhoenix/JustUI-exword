@@ -34,6 +34,7 @@ add_library(${NAME} STATIC
   src/jframe.c
   src/jlist.c
   src/jscrolledlist.c
+  src/jbutton.c
   src/vec.c
   src/keymap.c
   ${ASSETS_${FXSDK_PLATFORM}}
