@@ -21,7 +21,7 @@ static int jfileselect_type_id = -1;
 # define JFILESELECT_SCROLLBAR_WIDTH 1
 # define JFILESELECT_INFO_SHORT 1
 #elif GINT_RENDER_RGB
-# define JFILESELECT_LINE_SPACING 4
+# define JFILESELECT_LINE_SPACING (J_CONFIG_TOUCH ? 6 : 4)
 # define JFILESELECT_SCROLLBAR_WIDTH 2
 # define JFILESELECT_INFO_SHORT 0
 #endif
@@ -353,6 +353,8 @@ bool jfileselect_default_filter(struct dirent const *ent)
 		return false;
 	if(!strcmp(ent->d_name, "SAVE-F"))
 		return false;
+	if(!strcmp(ent->d_name, "AutoImport"))
+		return false;
 	if(!strcmp(ent->d_name, "."))
 		return false;
 	if(!strcmp(ent->d_name, ".."))
@@ -360,7 +362,7 @@ bool jfileselect_default_filter(struct dirent const *ent)
 	return true;
 }
 
-static void jfileselect_select(jfileselect *fs, int index)
+GUNUSED static void jfileselect_select(jfileselect *fs, int index)
 {
 	/* Normalize out-of-bounds to -1 */
 	if(index < 0 || index >= fs->entry_count)

@@ -167,7 +167,7 @@ jrect jlist_selected_region(jlist *l)
 // Polymorphic widget operations
 //---
 
-static int item_index_at(void *l0, int ly)
+GUNUSED static int item_index_at(void *l0, int ly)
 {
     jlist *l = l0;
     int y = 0;
