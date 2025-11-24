@@ -83,6 +83,8 @@ jfileselect *jfileselect_create(void *parent)
 	fs->line_spacing = JFILESELECT_LINE_SPACING;
 	fs->font = dfont_default();
 	fs->show_file_size = false;
+	fs->short_size = false;
+	fs->colorbar = C_BLACK;
 
 	return fs;
 }
@@ -154,6 +156,18 @@ void jfileselect_set_scrollbar_width(jfileselect *fs, int scrollbar_width)
 void jfileselect_set_show_file_size(jfileselect *fs, bool show_file_size)
 {
 	fs->show_file_size = show_file_size;
+	fs->widget.update = true;
+}
+
+void jfileselect_set_show_short_size(jfileselect *fs, bool short_size)
+{
+	fs->short_size = short_size;
+	fs->widget.update = true;
+}
+
+void jfileselect_set_colorbar(jfileselect *fs, uint16_t color)
+{
+	fs->colorbar = color;
 	fs->widget.update = true;
 }
 
@@ -394,7 +408,7 @@ static void jfileselect_poly_layout(void *fs0)
 	fs->saveas_input->widget.w = jwidget_content_width(fs) - 4;
 }
 
-static void generate_info_string(char *str, bool isfolder, int size)
+static void generate_info_string(char *str, bool isfolder, int size, bool short_size)
 {
 #if JFILESELECT_INFO_SHORT
 	if(size < 0)
@@ -410,8 +424,13 @@ static void generate_info_string(char *str, bool isfolder, int size)
 		sprintf(str, "E%d", -size);
 	else if(isfolder)
 		sprintf(str, "%d entries", size);
+
+	else if(size > 1024*1024 && short_size)
+		sprintf(str, "%1.2f MB", (float) size / (1024*1024) );		// float with 2 digits for addins above 1MByte and request for short_size
+	else if(size > 10*1240  && short_size)
+		sprintf(str, "%3.1f kB", (float) size / 1024);				// float with 1 digit for addins above 10kBytes and request for short_size
 	else
-		sprintf(str, "%d B", size);
+		sprintf(str, "%d B", size);									// direct size in Bytes for all other cases
 #endif
 }
 
@@ -461,13 +480,13 @@ static void jfileselect_poly_render(void *fs0, int x, int y)
 
 		if(selected) {
 			drect(x, line_y, x + entry_width - 1, line_y + line_height - 1,
-				C_BLACK);
+				fs->colorbar);
 		}
 
 		dprint(x+2, text_y, fg, "%s%s", info->name, isfolder ? "/" : "");
 		if(fs->show_file_size) {
 			char str[32];
-			generate_info_string(str, isfolder, info->size);
+			generate_info_string(str, isfolder, info->size, fs->short_size );
 			dtext_opt(x + entry_width - 3, text_y, fg, C_NONE, DTEXT_RIGHT,
 				DTEXT_TOP, str);
 		}

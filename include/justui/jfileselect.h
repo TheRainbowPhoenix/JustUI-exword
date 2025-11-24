@@ -59,8 +59,12 @@ typedef struct {
     int8_t line_spacing;
     /* Whether to show the file size on the right */
     bool show_file_size;
+    /* allow short filesize B, then kB and MB */
+	 bool short_size;
     /* Rendering font */
     font_t const *font;
+    /* Color of the selected item bar */
+    uint16_t colorbar;
 
 } jfileselect;
 
@@ -121,5 +125,7 @@ void jfileselect_set_font(jfileselect *fs, font_t const *font);
 void jfileselect_set_line_spacing(jfileselect *fs, int line_spacing);
 void jfileselect_set_scrollbar_width(jfileselect *fs, int scrollbar_width);
 void jfileselect_set_show_file_size(jfileselect *fs, bool show_file_size);
+void jfileselect_set_show_short_size(jfileselect *fs, bool short_size);
+void jfileselect_set_colorbar(jfileselect *fs, uint16_t color);
 
 #endif /* _J_JFILESELECT */

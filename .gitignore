@@ -8,4 +8,7 @@ giteapc-config-*.make
 # Developer's files
 *.sublime-*
 
+# Common IDE files
+.vscode
+
 __pycache__
