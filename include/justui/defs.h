@@ -6,12 +6,29 @@
 #define _J_DEFS
 
 #include <gint/defs/types.h>
-#include <gint/defs/util.h>
 #include <gint/defs/attributes.h>
 
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+
+#ifdef __cplusplus
+#define JAUTOTYPE auto
+#else
+#define JAUTOTYPE __auto_type
+#endif
+
+/* min(), max() (without double evaluation) */
+#define min(a, b) ({                    \
+        JAUTOTYPE _a = (a);             \
+        JAUTOTYPE _b = (b);             \
+        _a < _b ? _a : _b;              \
+})
+#define max(a, b) ({                    \
+        JAUTOTYPE _a = (a);             \
+        JAUTOTYPE _b = (b);             \
+        _a > _b ? _a : _b;              \
+})
 
 /* jdirs: Quadruplet with four directions */
 typedef struct {
