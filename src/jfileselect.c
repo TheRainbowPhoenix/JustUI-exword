@@ -222,7 +222,7 @@ static int compare_entries(void const *i1_0, void const *i2_0)
 	return strcmp(i1->name, i2->name);
 }
 
-static bool load_folder_switch(jfileselect *fs, char *path)
+static bool load_folder_worker(jfileselect *fs, char *path)
 {
 	set_finfo(fs, NULL, 0);
 	free(fs->path);
@@ -304,8 +304,7 @@ static bool load_folder_switch(jfileselect *fs, char *path)
 
 static bool load_folder(jfileselect *fs, char *path)
 {
-	bool ok =
-		gint_world_switch(GINT_CALL(load_folder_switch, (void *)fs, path));
+	bool ok = load_folder_worker(fs, path);
 
 	fs->widget.update = true;
 	jwidget_emit(fs, (jevent){ .type = JFILESELECT_LOADED });
