@@ -1,0 +1,76 @@
+name: EX-word JustUI
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      gint_ref:
+        description: gint-exword branch or tag
+        default: feature/exword-runtime-bridge
+        type: string
+permissions:
+  contents: read
+jobs:
+  exword:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/therainbowphoenix/gint-docker:main
+    env:
+      GINT_REF: ${{ inputs.gint_ref || 'feature/exword-runtime-bridge' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install fxSDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 --branch fix/exword-data-load-alignment https://github.com/TheRainbowPhoenix/fxsdk-exword.git /tmp/fxsdk-src
+          cmake -S /tmp/fxsdk-src -B /tmp/fxsdk-build \
+            -DCMAKE_INSTALL_PREFIX=/tmp/fxsdk-exword \
+            -DFXLINK_DISABLE_SDL2=ON -DFXLINK_DISABLE_UDISKS2=ON
+          cmake --build /tmp/fxsdk-build --parallel 2
+          cmake --install /tmp/fxsdk-build
+          git clone --depth=1 https://github.com/brijohn/elf2d01.git /tmp/elf2d01
+          cc -O2 /tmp/elf2d01/elf2d01.c -o /tmp/fxsdk-exword/bin/elf2d01
+
+      - name: Build and install gint
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/fxsdk-exword/bin:$PATH"
+          git clone --depth=1 --branch "$GINT_REF" https://github.com/TheRainbowPhoenix/gint-exword.git /tmp/gint-src
+          python3 .github/tests/check_exword.py /tmp/gint-src
+          cmake -S /tmp/gint-src -B /tmp/gint-build \
+            -DCMAKE_TOOLCHAIN_FILE=/tmp/fxsdk-exword/lib/cmake/fxsdk/EXWORD.cmake \
+            -DCMAKE_INSTALL_PREFIX=/tmp/gint-exword \
+            -DCMAKE_MODULE_PATH=/tmp/fxsdk-exword/lib/cmake/fxsdk
+          cmake --build /tmp/gint-build --parallel 2
+          cmake --install /tmp/gint-build
+          test -s /tmp/gint-exword/lib/libgint-exword.a
+          sh-elf-nm /tmp/gint-exword/lib/libgint-exword.a | grep -E '_r61523_display_rect$'
+          sh-elf-nm /tmp/gint-exword/lib/libgint-exword.a | grep -E '_pollevent$'
+
+
+      - name: Build and install JustUI
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/fxsdk-exword/bin:$PATH"
+          cmake -S . -B build-exword \
+            -DCMAKE_TOOLCHAIN_FILE=/tmp/fxsdk-exword/lib/cmake/fxsdk/EXWORD.cmake \
+            -DCMAKE_INSTALL_PREFIX=/tmp/justui-exword \
+            -DCMAKE_PREFIX_PATH=/tmp/gint-exword \
+            '-DCMAKE_MODULE_PATH=/tmp/gint-exword/lib/cmake/fxsdk;/tmp/fxsdk-exword/lib/cmake/fxsdk'
+          cmake --build build-exword --parallel 2
+          cmake --install build-exword
+          test -s /tmp/justui-exword/lib/libjustui-exword.a
+          test -s /tmp/justui-exword/lib/cmake/fxsdk/FindJustUI.cmake
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: justui-exword
+          if-no-files-found: warn
+          path: |
+            /tmp/justui-exword/
+            build-exword/CMakeFiles/CMakeConfigureLog.yaml

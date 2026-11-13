@@ -58,8 +58,13 @@ jscene *jscene_create(int x, int y, int w, int h, void *parent)
 	s->queue_first = 0;
 	s->queue_next = 0;
 	s->lost_events = 0;
+#if GINT_HW_EX
+	s->mainmenu = false;
+	s->poweroff = false;
+#else
 	s->mainmenu = (gint[HWCALC] != HWCALC_FXCG100);
 	s->poweroff = true;
+#endif
 	s->autopaint = false;
 
 	s->touch_last_x = -1;
@@ -377,6 +382,8 @@ static jevent poll_next_unhandled_event(keydev_t *d, jscene *s)
 			s->widget.update = true;
 		}
 #endif
+
+#if !GINT_HW_EX
 		/* Auto return-to-menu */
 		if(k.type == KEYEV_DOWN && k.key == KEY_MENU && !k.shift && !k.alpha) {
 			if(s->mainmenu) {
@@ -393,6 +400,7 @@ static jevent poll_next_unhandled_event(keydev_t *d, jscene *s)
 				continue;
 			}
 		}
+#endif
 		/* Handle backlight */
 #if GINT_HW_FX
 		if(k.type == KEYEV_DOWN && k.key == KEY_OPTN && k.shift && !k.alpha) {

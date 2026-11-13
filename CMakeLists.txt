@@ -17,6 +17,11 @@ set(ASSETS_cg
   assets/input-modes-cg.png
 )
 set(ASSETS_cp ${ASSETS_cg})
+set(ASSETS_exword ${ASSETS_cg})
+if(FXSDK_PLATFORM STREQUAL "exword")
+  set(CMAKE_FXCONV_COMPILE_OBJECT
+    "<CMAKE_FXCONV_COMPILER> --toolchain=sh-elf --cg <SOURCE> -o <OBJECT>")
+endif()
 fxconv_declare_assets(${ASSETS_fx} ${ASSETS_cg} WITH_METADATA)
 
 set(NAME "justui-${FXSDK_PLATFORM}")
@@ -53,6 +58,12 @@ target_link_libraries(${NAME}
 set(CMAKE_C_ARCHIVE_CREATE "${CMAKE_C_COMPILER_AR} qcs <TARGET> <OBJECTS>")
 # Also the ranlib rule (useless because ar is passed the s flag anyway)
 set(CMAKE_C_ARCHIVE_FINISH "${CMAKE_C_COMPILER_RANLIB} <TARGET>")
+
+if(FXSDK_PLATFORM STREQUAL "exword")
+  set(FXSDK_LIB lib)
+  set(FXSDK_INCLUDE include)
+  set(FXSDK_CMAKE_MODULE_PATH lib/cmake/fxsdk)
+endif()
 
 install(TARGETS ${NAME}
   DESTINATION "${FXSDK_LIB}")

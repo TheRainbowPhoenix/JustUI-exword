@@ -165,7 +165,7 @@ bool jfkeys_poly_event(void *f0, jevent e)
 
 	if(e.type == JWIDGET_KEY && e.key.type == KEYEV_DOWN) {
 		int fun = keycode_function(e.key.key);
-		if(fun >= 0) {
+		if(fun >= 1 && fun <= 6) {
 			te.data = fun - 1;
 			jwidget_emit(f, te);
 			return true;

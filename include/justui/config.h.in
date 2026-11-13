@@ -9,7 +9,7 @@
 
 #define J_VERSION "@JustUI_VERSION@"
 
-#if GINT_HW_CP
+#if GINT_HW_CP || GINT_HW_EX
 #define J_CONFIG_TOUCH 1
 #else
 #define J_CONFIG_TOUCH 0

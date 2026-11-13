@@ -1,6 +1,7 @@
 #include "util.h"
 #include <gint/keyboard.h>
 
+#if !GINT_HW_EX
 static int key_id(int keycode)
 {
 	uint col = (keycode & 0x0f) - 1;
@@ -26,8 +27,17 @@ static uint8_t map_alpha[36] = {
 	'z',  ' ',  '"',   0,    0,    0,
 };
 
+#endif
+
 uint32_t keymap_translate(int key, bool shift, bool alpha)
 {
+#if GINT_HW_EX
+	(void)alpha;
+	static char const letters[] = "qwertyuiopasdfghjklzxcvbnm";
+	if(key < KEY_EX_Q || key > KEY_EX_M) return 0;
+	int c = letters[key - KEY_EX_Q];
+	return shift ? c - 'a' + 'A' : c;
+#else
 	int id = key_id(key);
 	if(id < 0) return 0;
 
@@ -53,4 +63,5 @@ uint32_t keymap_translate(int key, bool shift, bool alpha)
 	}
 
 	return 0;
+#endif
 }
