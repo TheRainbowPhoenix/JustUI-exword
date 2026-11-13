@@ -4,7 +4,7 @@
 #include "jlayout_p.h"
 #include "util.h"
 
-#include <openlibm.h>
+#include <math.h>
 
 //---
 // Flexbox-like box layout

@@ -22,7 +22,6 @@ with tempfile.TemporaryDirectory() as directory:
     (p / 'justui/config.h').write_text(justui_config.replace('@JustUI_VERSION@', 'test'))
 
     # Generate stub headers
-    (p / 'openlibm.h').write_text('#include <math.h>\n')
     
     dirent_h = (
         'struct dirent { unsigned char d_type; char d_name[256]; };\n'
@@ -31,17 +30,26 @@ with tempfile.TemporaryDirectory() as directory:
         'DIR *opendir(char const *);\n'
         'struct dirent *readdir(DIR *);\n'
         'int closedir(DIR *);\n'
+        'void rewinddir(DIR *);\n'
     )
     (p / 'dirent.h').write_text(dirent_h)
 
     # Compiler arguments
     args = [
-        'gcc', '-std=gnu11', '-DFXEXWORD',
+        'gcc', '-std=gnu11', '-DFXEXWORD', '-D_GNU_SOURCE',
         '-I' + str(p),
         '-I' + str(root / 'include'),
         '-I' + str(ui / 'include'),
-        '-Wall', '-Wextra'
+        '-Wall', '-Wextra', '-Werror=implicit-function-declaration'
     ]
+
+    if sys.platform == 'win32':
+        compat = p / 'host_compat.h'
+        compat.write_text(
+            '#include <stdarg.h>\n'
+            'char *strchrnul(char const *, int);\n'
+        )
+        args += ['-include', str(compat)]
 
     # Syntax check all source files
     failed = False
