@@ -32,10 +32,15 @@ static uint8_t map_alpha[36] = {
 uint32_t keymap_translate(int key, bool shift, bool alpha)
 {
 #if GINT_HW_EX
-	(void)alpha;
 	static char const letters[] = "qwertyuiopasdfghjklzxcvbnm";
 	if(key < KEY_EX_Q || key > KEY_EX_M) return 0;
-	int c = letters[key - KEY_EX_Q];
+	int index = key - KEY_EX_Q;
+	if(alpha) {
+		static char const symbols[] = "1234567890.      ?~   +-*/";
+		int c = symbols[index];
+		return c == ' ' ? 0 : c;
+	}
+	int c = letters[index];
 	return shift ? c - 'a' + 'A' : c;
 #else
 	int id = key_id(key);
